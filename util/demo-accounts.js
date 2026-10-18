@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 // Hardcoded demo accounts for the testing phase.
 // ensureDemoAccounts() creates/refreshes these users and the "Demo Project" board in whatever
 // database the app is connected to, so a live demo works without running a seed script.

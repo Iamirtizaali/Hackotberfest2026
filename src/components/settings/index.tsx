@@ -181,7 +181,13 @@ const Settings = (): JSX.Element => {
           py="14px"
           fontSize="14px"
           sx={{ gap: '8px' }}>
-          <Text as="label" htmlFor="profile-role" width={['auto', '160px']} color="muted" flexShrink={0} pt="6px">
+          <Text
+            as="label"
+            htmlFor="profile-role"
+            width={['auto', '160px']}
+            color="muted"
+            flexShrink={0}
+            pt="6px">
             Role
           </Text>
           <Input
@@ -204,7 +210,13 @@ const Settings = (): JSX.Element => {
           py="14px"
           fontSize="14px"
           sx={{ gap: '8px' }}>
-          <Text as="label" htmlFor="profile-skills" width={['auto', '160px']} color="muted" flexShrink={0} pt="6px">
+          <Text
+            as="label"
+            htmlFor="profile-skills"
+            width={['auto', '160px']}
+            color="muted"
+            flexShrink={0}
+            pt="6px">
             Skills
           </Text>
           <Box flex="1" minWidth="0">
@@ -222,7 +234,10 @@ const Settings = (): JSX.Element => {
               {skills.map((skill) => (
                 <Tag key={skill} size="sm" borderRadius="full" variant="subtle" colorScheme="blue">
                   <TagLabel>{skill}</TagLabel>
-                  <TagCloseButton aria-label={`Remove ${skill}`} onClick={() => removeSkill(skill)} />
+                  <TagCloseButton
+                    aria-label={`Remove ${skill}`}
+                    onClick={() => removeSkill(skill)}
+                  />
                 </Tag>
               ))}
               <Input

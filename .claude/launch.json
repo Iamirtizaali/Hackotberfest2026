@@ -3,8 +3,10 @@
   "configurations": [
     {
       "name": "trello-dev",
-      "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "set NODE_OPTIONS=--openssl-legacy-provider&& yarn dev"],
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 3000
     }
   ]

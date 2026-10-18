@@ -124,7 +124,13 @@ const PlanPreview = ({
         <Text fontSize="12px" color="muted">
           {plan.tasks.length} tasks · {columns.length} columns · ~{totalHours}h
         </Text>
-        <Box display="flex" flexWrap="wrap" sx={{ gap: '10px' }} mt="6px" fontSize="11px" color="muted">
+        <Box
+          display="flex"
+          flexWrap="wrap"
+          sx={{ gap: '10px' }}
+          mt="6px"
+          fontSize="11px"
+          color="muted">
           {(['high', 'medium', 'low'] as const).map((p) => (
             <Box key={p} display="inline-flex" alignItems="center" sx={{ gap: '4px' }}>
               <Box width="8px" height="8px" borderRadius="2px" bg={priorityColors[p]} />

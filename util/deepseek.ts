@@ -51,7 +51,10 @@ const requestCompletion = async (
 
     if (!response.ok) {
       const text = await response.text();
-      throw new DeepSeekError('upstream', `DeepSeek returned ${response.status}: ${text.slice(0, 300)}`);
+      throw new DeepSeekError(
+        'upstream',
+        `DeepSeek returned ${response.status}: ${text.slice(0, 300)}`
+      );
     }
 
     const data = await response.json();
@@ -93,7 +96,10 @@ export async function callDeepSeekJSON({
   const apiKey = process.env.DEEPSEEK_API_KEY;
 
   if (!apiKey) {
-    throw new DeepSeekError('missing_key', 'Set DEEPSEEK_API_KEY in .env.local and restart the dev server.');
+    throw new DeepSeekError(
+      'missing_key',
+      'Set DEEPSEEK_API_KEY in .env.local and restart the dev server.'
+    );
   }
 
   const baseUrl = (process.env.DEEPSEEK_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, '');
@@ -109,7 +115,10 @@ export async function callDeepSeekJSON({
     const attemptMessages: ChatMessage[] =
       attempt === 0
         ? baseMessages
-        : [...baseMessages, { role: 'user', content: 'Return only valid json matching the schema.' }];
+        : [
+            ...baseMessages,
+            { role: 'user', content: 'Return only valid json matching the schema.' }
+          ];
 
     const content = await requestCompletion(
       url,

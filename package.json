@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Tessera: a minimal board for planning work with cards and columns",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node --openssl-legacy-provider node_modules/next/dist/bin/next dev",
+    "build": "node --openssl-legacy-provider node_modules/next/dist/bin/next build",
+    "start": "node --openssl-legacy-provider node_modules/next/dist/bin/next start",
     "lint": "eslint --fix .",
     "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
     "prepare": "husky install"
@@ -65,5 +65,8 @@
     "prettier": "^2.2.1",
     "semantic-release": "^19.0.3",
     "typescript": "^4.3.2"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

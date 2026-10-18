@@ -63,7 +63,8 @@ const EXAMPLE = {
     {
       ref: 'T1',
       title: 'Design landing page wireframes',
-      description: 'Create desktop and mobile wireframes for the hero, features and signup sections.',
+      description:
+        'Create desktop and mobile wireframes for the hero, features and signup sections.',
       column: 'Sprint 1 - Foundations',
       label: 'feature',
       priority: 'high',
@@ -124,13 +125,17 @@ RULES:
 3. Assign each task by matching its "requiredSkills" to the members' "skills" (and "role"). Prefer the closest skill match, then the member with fewer tasks. Balance the load: no member should get more than about ceil(tasks / members) + 1 tasks, counting their existing "openTasks".
 4. "assigneeId" must be one of the team ids above, or null only if nobody fits. Never invent ids or people.
 5. "assignmentReason" is one short sentence naming the matching skill.
-6. "label" is one of: ${Object.keys(LABELS).join(', ')}. "priority" is one of: high, medium, low. "estimateHours" is an integer from 1 to 16.
+6. "label" is one of: ${Object.keys(LABELS).join(
+    ', '
+  )}. "priority" is one of: high, medium, low. "estimateHours" is an integer from 1 to 16.
 7. "dependsOn" lists refs of earlier tasks only. Refs are "T1", "T2", ...
 8. Give 1 to 4 concrete "acceptanceCriteria" per task.
 9. If the brief is vague, still produce a sensible plan and put clarifying questions in "questions". Put delivery risks in "risks".
 10. When the conversation contains a previous plan and the PM asks for changes, return the full updated plan, not a diff.
 11. Set "priority" deliberately: high = blocking, critical-path, security or launch-critical work; medium = core feature work; low = polish and nice-to-haves. If the PM says which tasks or areas are high/medium/low priority, follow that exactly.
-12. Each task becomes a card whose label colour shows its priority. "priorityColors" maps high, medium and low to a "#RRGGBB" hex colour. Default to ${JSON.stringify(DEFAULT_PRIORITY_COLORS)}. Only change them when the PM asks (e.g. "make high priority purple"); convert colour names to hex, keep the three colours distinct, and keep the PM's colours in later revisions.
+12. Each task becomes a card whose label colour shows its priority. "priorityColors" maps high, medium and low to a "#RRGGBB" hex colour. Default to ${JSON.stringify(
+    DEFAULT_PRIORITY_COLORS
+  )}. Only change them when the PM asks (e.g. "make high priority purple"); convert colour names to hex, keep the three colours distinct, and keep the PM's colours in later revisions.
 
 OUTPUT: respond with a single json object only, no markdown, matching exactly this shape:
 ${JSON.stringify(EXAMPLE, null, 2)}`;
@@ -175,7 +180,9 @@ const normalizeColor = (value: unknown, fallback: string): string => {
 
   if (!HEX_COLOR.test(s)) return fallback;
 
-  return s.length === 4 ? `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`.toUpperCase() : s.toUpperCase();
+  return s.length === 4
+    ? `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`.toUpperCase()
+    : s.toUpperCase();
 };
 
 export const normalizePriorityColors = (value: any): Record<string, string> => {
@@ -212,13 +219,16 @@ export function normalizePlan(raw: any, members: PlanMember[]): Plan {
     const columnInput = str(t?.column, 60).toLowerCase();
     const column = columns.find((c) => c.toLowerCase() === columnInput) || columns[0];
     const requiredSkills = strList(t?.requiredSkills, 8, 40);
-    const label = LABELS[str(t?.label, 20).toLowerCase()] ? str(t.label, 20).toLowerCase() : 'feature';
+    const label = LABELS[str(t?.label, 20).toLowerCase()]
+      ? str(t.label, 20).toLowerCase()
+      : 'feature';
     const priority = PRIORITIES.includes(str(t?.priority, 10).toLowerCase())
       ? str(t.priority, 10).toLowerCase()
       : 'medium';
     const estimate = Math.round(Number(t?.estimateHours));
 
-    let assigneeId = typeof t?.assigneeId === 'string' && memberIds.has(t.assigneeId) ? t.assigneeId : null;
+    let assigneeId =
+      typeof t?.assigneeId === 'string' && memberIds.has(t.assigneeId) ? t.assigneeId : null;
     let assignmentReason = str(t?.assignmentReason, 200);
 
     if (!assigneeId && members.length) {
@@ -266,14 +276,17 @@ export function planToCardDescription(task: PlanTask, member?: PlanMember | null
 
   if (task.acceptanceCriteria.length) {
     parts.push('<p><strong>Acceptance criteria</strong></p>');
-    parts.push(`<ul>${task.acceptanceCriteria.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`);
+    parts.push(
+      `<ul>${task.acceptanceCriteria.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>`
+    );
   }
 
   const meta = [
     `<strong>Priority:</strong> ${escapeHtml(task.priority)}`,
     `<strong>Type:</strong> ${escapeHtml(task.label)}`,
     `<strong>Estimate:</strong> ${task.estimateHours}h`,
-    task.requiredSkills.length && `<strong>Skills:</strong> ${escapeHtml(task.requiredSkills.join(', '))}`,
+    task.requiredSkills.length &&
+      `<strong>Skills:</strong> ${escapeHtml(task.requiredSkills.join(', '))}`,
     task.dependsOn.length && `<strong>Depends on:</strong> ${escapeHtml(task.dependsOn.join(', '))}`
   ].filter(Boolean);
 
@@ -281,7 +294,9 @@ export function planToCardDescription(task: PlanTask, member?: PlanMember | null
 
   if (member) {
     parts.push(
-      `<p><em>Assigned by AI to ${escapeHtml(member.fullName)}: ${escapeHtml(task.assignmentReason)}</em></p>`
+      `<p><em>Assigned by AI to ${escapeHtml(member.fullName)}: ${escapeHtml(
+        task.assignmentReason
+      )}</em></p>`
     );
   }
 

@@ -30,7 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const dateCreated = new Date().toLocaleString();
   const columnIdByName: Record<string, string> = {};
   const newColumns = [];
-  let nextColumnSequence = existingColumns.reduce((max, c) => Math.max(max, Number(c.sequence) || 0), 0) + 1;
+  let nextColumnSequence =
+    existingColumns.reduce((max, c) => Math.max(max, Number(c.sequence) || 0), 0) + 1;
 
   plan.columns.forEach((name) => {
     const existing = existingColumns.find(

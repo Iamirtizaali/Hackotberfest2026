@@ -15,11 +15,15 @@ type BoardContext =
     };
 
 // Authenticates the caller, checks they belong to the board and loads its members + columns
-export async function loadBoardContext(req: NextApiRequest, boardId: unknown): Promise<BoardContext> {
+export async function loadBoardContext(
+  req: NextApiRequest,
+  boardId: unknown
+): Promise<BoardContext> {
   const { isValid, id: userId } = isValidUser({ req }) || { isValid: false, id: undefined };
 
   if (!isValid || !userId) return { ok: false, status: 401, error: 'Please log in again.' };
-  if (typeof boardId !== 'string' || !boardId) return { ok: false, status: 400, error: 'Pick a board first.' };
+  if (typeof boardId !== 'string' || !boardId)
+    return { ok: false, status: 400, error: 'Pick a board first.' };
 
   const { db, client } = await connectToDatabase();
 
@@ -29,7 +33,9 @@ export async function loadBoardContext(req: NextApiRequest, boardId: unknown): P
 
   if (!board) return { ok: false, status: 404, error: 'Board not found.' };
 
-  const memberIds: string[] = Array.from(new Set([board.createdBy, ...(board.users || [])].filter(Boolean)));
+  const memberIds: string[] = Array.from(
+    new Set([board.createdBy, ...(board.users || [])].filter(Boolean))
+  );
 
   if (!memberIds.includes(userId)) {
     return { ok: false, status: 403, error: 'You are not a member of this board.' };

@@ -180,14 +180,22 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
   return (
     <>
       <Button ref={btnRef} onClick={onOpen} {...buttonProps}>
-        ✨ AI Planner
+        <span role="img" aria-hidden="true">
+          ✨
+        </span>
+        &nbsp;AI Planner
       </Button>
       <Drawer size="md" isOpen={isOpen} placement="right" onClose={onClose} finalFocusRef={btnRef}>
         <DrawerOverlay />
         <DrawerContent>
           <DrawerCloseButton />
           <DrawerHeader borderBottom="1px solid" borderColor="line">
-            <Text>✨ AI Planner</Text>
+            <Text>
+              <span role="img" aria-hidden="true">
+                ✨
+              </span>
+              &nbsp;AI Planner
+            </Text>
             {isLocked ? (
               <Text fontSize="13px" fontWeight={400} color="muted" mt="4px">
                 Planning for <strong>{currentBoard.name}</strong>
