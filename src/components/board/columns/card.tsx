@@ -43,7 +43,7 @@ const Card: FC<Props> = ({ cardIndex, showCardDetail, card }) => {
           }}>
           {card.label?.type && (
             <Box mb="6px">
-              <LabelChip type={card.label.type} />
+              <LabelChip type={card.label.type} bg={card.label.bg} />
             </Box>
           )}
           <Text fontSize="14px" lineHeight="1.4" wordBreak="break-word">

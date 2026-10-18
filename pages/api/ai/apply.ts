@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import shortId from 'shortid';
 import { loadBoardContext } from '@/util/ai-board-context';
-import { LABELS, normalizePlan, planToCardDescription } from '@/util/ai-plan';
+import { normalizePlan, planToCardDescription } from '@/util/ai-plan';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== 'POST') {
@@ -88,7 +88,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId,
       sequence: nextCardSequence[columnId]++,
       assignedTo: task.assigneeId || '',
-      label: { type: task.label, bg: LABELS[task.label] }
+      // The card's coloured label shows its priority; the task type is in the description
+      label: { type: `${task.priority} priority`, bg: plan.priorityColors[task.priority] }
     };
   });
 

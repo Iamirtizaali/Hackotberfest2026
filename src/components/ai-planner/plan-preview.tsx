@@ -5,7 +5,15 @@ import { useDispatch } from 'react-redux';
 import { fetchColumns } from '@/src/slices/columns';
 import { fetchCards } from '@/src/slices/cards';
 import checkEnvironment from '@/util/check-environment';
-import { ApplyResponse, ChatMessage, Member, Plan, PlanTask, labelColors } from '@/src/types/ai';
+import {
+  ApplyResponse,
+  ChatMessage,
+  Member,
+  Plan,
+  PlanTask,
+  defaultPriorityColors,
+  labelColors
+} from '@/src/types/ai';
 
 type Props = {
   plan: Plan;
@@ -17,8 +25,6 @@ type Props = {
   onRegenerate: () => void;
   onApplied: () => void;
 };
-
-const priorityColors = { high: 'red', medium: 'orange', low: 'gray' };
 
 const TaskTooltip = ({ task }: { task: PlanTask }) => (
   <Box fontSize="12px" py="2px">
@@ -107,6 +113,7 @@ const PlanPreview = ({
   };
 
   const totalHours = plan.tasks.reduce((sum, t) => sum + (Number(t.estimateHours) || 0), 0);
+  const priorityColors = { ...defaultPriorityColors, ...plan.priorityColors };
 
   return (
     <Box mt="16px" bg="white" border="1px solid" borderColor="line" borderRadius="12px">
@@ -117,6 +124,16 @@ const PlanPreview = ({
         <Text fontSize="12px" color="muted">
           {plan.tasks.length} tasks · {columns.length} columns · ~{totalHours}h
         </Text>
+        <Box display="flex" flexWrap="wrap" sx={{ gap: '10px' }} mt="6px" fontSize="11px" color="muted">
+          {(['high', 'medium', 'low'] as const).map((p) => (
+            <Box key={p} display="inline-flex" alignItems="center" sx={{ gap: '4px' }}>
+              <Box width="8px" height="8px" borderRadius="2px" bg={priorityColors[p]} />
+              <Text as="span" textTransform="capitalize">
+                {p} priority
+              </Text>
+            </Box>
+          ))}
+        </Box>
       </Box>
 
       {columns.map((column) => {
@@ -148,6 +165,8 @@ const PlanPreview = ({
                     mb="4px"
                     borderRadius="8px"
                     bg="plaster"
+                    borderLeft="3px solid"
+                    borderLeftColor={priorityColors[task.priority] || 'line'}
                     _hover={{ bg: 'line' }}
                     cursor="default">
                     <Text fontSize="13px" fontWeight={600}>
@@ -167,8 +186,12 @@ const PlanPreview = ({
                         textTransform="lowercase">
                         {task.label}
                       </Badge>
-                      <Badge colorScheme={priorityColors[task.priority] || 'gray'} fontSize="10px">
-                        {task.priority}
+                      <Badge
+                        bg={priorityColors[task.priority] || 'gray.400'}
+                        color="white"
+                        fontSize="10px"
+                        textTransform="lowercase">
+                        {task.priority} priority
                       </Badge>
                       <Text color="muted">{task.estimateHours}h</Text>
                       <Box display="flex" alignItems="center" sx={{ gap: '4px' }} ml="auto">

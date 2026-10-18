@@ -19,7 +19,11 @@ export const cardLabels: Label[] = [
   { type: 'bug', bg: palette.rose },
   { type: 'feature', bg: palette.verdigris },
   { type: 'information', bg: palette.ochre },
-  { type: 'warning', bg: palette.saffron }
+  { type: 'warning', bg: palette.saffron },
+  // Priority labels, the same ones the AI planner applies
+  { type: 'high priority', bg: palette.rose },
+  { type: 'medium priority', bg: palette.saffron },
+  { type: 'low priority', bg: palette.verdigris }
 ];
 
 const CardLabel: FC<IProps> = ({ id, boardId, value, onChange }) => {
@@ -50,7 +54,7 @@ const CardLabel: FC<IProps> = ({ id, boardId, value, onChange }) => {
         textAlign="left"
         rightIcon={<FiChevronDown />}>
         {value?.type ? (
-          <LabelChip type={value.type} />
+          <LabelChip type={value.type} bg={value.bg} />
         ) : (
           <Box as="span" color="muted">
             None
@@ -60,7 +64,7 @@ const CardLabel: FC<IProps> = ({ id, boardId, value, onChange }) => {
       <MenuList>
         {cardLabels.map((item) => (
           <MenuItem key={item.type} onClick={() => handleClick(item)}>
-            <LabelChip type={item.type} />
+            <LabelChip type={item.type} bg={item.bg} />
           </MenuItem>
         ))}
         <MenuDivider borderColor="line" />

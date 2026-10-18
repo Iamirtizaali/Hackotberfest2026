@@ -32,6 +32,7 @@ export type Plan = {
   tasks: PlanTask[];
   risks: string[];
   questions: string[];
+  priorityColors?: Record<PlanPriority, string>;
 };
 
 export type ChatMessage = {
@@ -44,9 +45,16 @@ export type PlanResponse = { plan: Plan; members: Member[] };
 export type ApplyResponse = { columnsCreated: number; cardsCreated: number; planId: string };
 
 export const labelColors: Record<PlanLabel, string> = {
-  performance: '#0079bf',
-  bug: '#eb5a46',
-  feature: '#61bd4f',
-  information: '#ff9f1a',
-  warning: '#f2d600'
+  performance: '#2B44C7',
+  bug: '#C7405A',
+  feature: '#2C8A6E',
+  information: '#C99227',
+  warning: '#E3B341'
+};
+
+// Mirrors DEFAULT_PRIORITY_COLORS in util/ai-plan.ts
+export const defaultPriorityColors: Record<PlanPriority, string> = {
+  high: '#C7405A',
+  medium: '#E3B341',
+  low: '#2C8A6E'
 };

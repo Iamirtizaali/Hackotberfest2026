@@ -2,15 +2,23 @@
 // The model's output is never trusted: normalizePlan() coerces every field and only
 // allows assignees that are real board members.
 
+// Same colours as the manual label menu (src/theme.ts palette)
 export const LABELS: Record<string, string> = {
-  feature: '#61bd4f',
-  bug: '#eb5a46',
-  performance: '#0079bf',
-  information: '#ff9f1a',
-  warning: '#f2d600'
+  feature: '#2C8A6E',
+  bug: '#C7405A',
+  performance: '#2B44C7',
+  information: '#C99227',
+  warning: '#E3B341'
 };
 
 const PRIORITIES = ['high', 'medium', 'low'];
+
+// Card label colour per priority; the PM can ask the AI to change them
+export const DEFAULT_PRIORITY_COLORS: Record<string, string> = {
+  high: '#C7405A',
+  medium: '#E3B341',
+  low: '#2C8A6E'
+};
 const MAX_COLUMNS = 8;
 const MAX_TASKS = 40;
 
@@ -44,10 +52,12 @@ export type Plan = {
   tasks: PlanTask[];
   risks: string[];
   questions: string[];
+  priorityColors: Record<string, string>;
 };
 
 const EXAMPLE = {
   summary: 'Two-week plan to ship a landing page with a signup API.',
+  priorityColors: DEFAULT_PRIORITY_COLORS,
   columns: ['Sprint 1 - Foundations', 'Sprint 2 - Launch'],
   tasks: [
     {
@@ -119,6 +129,8 @@ RULES:
 8. Give 1 to 4 concrete "acceptanceCriteria" per task.
 9. If the brief is vague, still produce a sensible plan and put clarifying questions in "questions". Put delivery risks in "risks".
 10. When the conversation contains a previous plan and the PM asks for changes, return the full updated plan, not a diff.
+11. Set "priority" deliberately: high = blocking, critical-path, security or launch-critical work; medium = core feature work; low = polish and nice-to-haves. If the PM says which tasks or areas are high/medium/low priority, follow that exactly.
+12. Each task becomes a card whose label colour shows its priority. "priorityColors" maps high, medium and low to a "#RRGGBB" hex colour. Default to ${JSON.stringify(DEFAULT_PRIORITY_COLORS)}. Only change them when the PM asks (e.g. "make high priority purple"); convert colour names to hex, keep the three colours distinct, and keep the PM's colours in later revisions.
 
 OUTPUT: respond with a single json object only, no markdown, matching exactly this shape:
 ${JSON.stringify(EXAMPLE, null, 2)}`;
@@ -154,6 +166,24 @@ const pickFallbackAssignee = (
   }
 
   return { member: best, overlap: bestOverlap };
+};
+
+const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+const normalizeColor = (value: unknown, fallback: string): string => {
+  const s = str(value, 7);
+
+  if (!HEX_COLOR.test(s)) return fallback;
+
+  return s.length === 4 ? `#${s[1]}${s[1]}${s[2]}${s[2]}${s[3]}${s[3]}`.toUpperCase() : s.toUpperCase();
+};
+
+export const normalizePriorityColors = (value: any): Record<string, string> => {
+  const colors: Record<string, string> = {};
+
+  PRIORITIES.forEach((p) => (colors[p] = normalizeColor(value?.[p], DEFAULT_PRIORITY_COLORS[p])));
+
+  return colors;
 };
 
 export function normalizePlan(raw: any, members: PlanMember[]): Plan {
@@ -223,7 +253,8 @@ export function normalizePlan(raw: any, members: PlanMember[]): Plan {
     columns,
     tasks,
     risks: strList(raw?.risks, 8, 300),
-    questions: strList(raw?.questions, 6, 300)
+    questions: strList(raw?.questions, 6, 300),
+    priorityColors: normalizePriorityColors(raw?.priorityColors)
   };
 }
 
@@ -240,6 +271,7 @@ export function planToCardDescription(task: PlanTask, member?: PlanMember | null
 
   const meta = [
     `<strong>Priority:</strong> ${escapeHtml(task.priority)}`,
+    `<strong>Type:</strong> ${escapeHtml(task.label)}`,
     `<strong>Estimate:</strong> ${task.estimateHours}h`,
     task.requiredSkills.length && `<strong>Skills:</strong> ${escapeHtml(task.requiredSkills.join(', '))}`,
     task.dependsOn.length && `<strong>Depends on:</strong> ${escapeHtml(task.dependsOn.join(', '))}`
