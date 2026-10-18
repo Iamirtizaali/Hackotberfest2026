@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Box } from '@chakra-ui/react';
 import Sidebar from '@/src/components/app-shell/sidebar';
-import AiPlanner from '@/src/components/ai-planner';
+import { AiPlannerProvider } from '@/src/components/ai-planner';
 
 const withSidebar = (App, props) => {
   return class BoardWithSidebar extends Component {
@@ -25,30 +25,32 @@ const withSidebar = (App, props) => {
       const { page } = props;
 
       return (
-        <Box
-          minHeight="100vh"
-          bg="plaster"
-          display="flex"
-          flexDirection={['column', 'column', 'row']}>
-          <Sidebar page={page} />
+        <AiPlannerProvider>
           <Box
-            as="main"
-            flex="1"
-            minWidth="0"
-            px={['16px', '24px', '48px']}
-            py={['24px', '32px', '48px']}>
-            <Box maxW="1080px" mx="auto">
-              <Box
-                display="flex"
-                justifyContent="flex-end"
-                mt={['-8px', '-16px', '-28px']}
-                mb="8px">
-                <AiPlanner />
+            minHeight="100vh"
+            bg="marble"
+            display="flex"
+            flexDirection={['column', 'column', 'column', 'row']}>
+            <Sidebar page={page} />
+            {/* Pages sit on a white sheet; the marble around it is the app's frame */}
+            <Box
+              as="main"
+              id="main"
+              flex="1"
+              minWidth="0"
+              bg="surface"
+              m={['0', '0', '0', '8px 8px 8px 0']}
+              borderRadius={['0', '0', '0', 'sheet']}
+              border={['none', 'none', 'none', '1px solid']}
+              borderColor="line"
+              px={['16px', '24px', '40px', '48px']}
+              py={['24px', '32px', '40px', '44px']}>
+              <Box maxW="1120px" mx="auto">
+                <App />
               </Box>
-              <App />
             </Box>
           </Box>
-        </Box>
+        </AiPlannerProvider>
       );
     }
   };

@@ -4,24 +4,37 @@ body {
   height: 100%;
 }
 
-body {
-  font-feature-settings: 'ss01', 'cv11';
-}
-
 :focus-visible {
   outline: 2px solid #2b44c7;
   outline-offset: 2px;
 }
 
-/* Page-load progress bar */
+/* Route entrance. "backwards" fill leaves no transform behind once it ends, so the wrapper
+   never becomes a containing block for the fixed-position cards drag-and-drop creates. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: page-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* Page-load progress bar: gold on every surface */
 #nprogress .bar {
-  background: #2b44c7;
+  background: #d4a12a;
 }
 
 /* Board scroll areas: thin, quiet scrollbars */
 .tessera-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(30, 41, 37, 0.25) transparent;
+  scrollbar-color: rgba(23, 28, 46, 0.22) transparent;
 }
 
 .tessera-scroll::-webkit-scrollbar {
@@ -30,51 +43,62 @@ body {
 }
 
 .tessera-scroll::-webkit-scrollbar-thumb {
-  background: rgba(30, 41, 37, 0.25);
+  background: rgba(23, 28, 46, 0.22);
   border-radius: 8px;
 }
 
 .tessera-scroll--light {
-  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
 }
 
 .tessera-scroll--light::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* Rich text editor in the card details */
 .text-editor .ql-toolbar.ql-snow {
-  border: 1px solid #e3e5e0;
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  background: #f2f3ef;
+  border: 1px solid #c8cad2;
+  border-bottom: 1px solid #e3e4e8;
+  border-radius: 8px 8px 0 0;
+  background: #f4f4f0;
   font-family: inherit;
 }
 
 .text-editor .ql-container.ql-snow {
-  border: 1px solid #e3e5e0;
-  border-radius: 0 0 6px 6px;
+  border: 1px solid #c8cad2;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
   font-family: inherit;
-  font-size: 14px;
-  color: #1e2925;
+  font-size: 15px;
+  color: #171c2e;
+  background: #ffffff;
+}
+
+.text-editor:focus-within .ql-container.ql-snow,
+.text-editor:focus-within .ql-toolbar.ql-snow {
+  border-color: #2b44c7;
 }
 
 .text-editor .ql-editor {
-  min-height: 160px;
+  min-height: 180px;
   line-height: 1.6;
 }
 
 .text-editor .ql-editor.ql-blank::before {
-  color: #66706b;
+  color: #8a8fa0;
   font-style: normal;
 }
 
 .text-editor .ql-snow .ql-stroke {
-  stroke: #66706b;
+  stroke: #5b6175;
 }
 
 .text-editor .ql-snow .ql-fill {
-  fill: #66706b;
+  fill: #5b6175;
+}
+
+.text-editor .ql-snow .ql-picker {
+  color: #5b6175;
 }
 
 .text-editor .ql-snow button:hover .ql-stroke,
@@ -92,7 +116,9 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

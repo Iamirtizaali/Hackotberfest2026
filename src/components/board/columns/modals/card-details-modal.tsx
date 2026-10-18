@@ -32,7 +32,7 @@ type Props = {
 };
 
 const FieldLabel: FC = ({ children }) => (
-  <Text fontSize="12px" fontWeight={500} color="muted" mb="6px">
+  <Text fontSize="13px" fontWeight={620} color="ink" mb="6px">
     {children}
   </Text>
 );
@@ -47,6 +47,12 @@ const CardDetailsModal: FC<Props> = ({ onClose, isOpen, card }) => {
   const cardRequest = useAppSelector((state) => state.cards.isRequesting);
   const cardDelete = useAppSelector((state) => state.cards.isDeleting);
   const users = useAppSelector((state) => state.users.users);
+  const columns = useAppSelector((state) => state.columns.columns) as Array<{
+    _id: string;
+    columnName?: string;
+  }>;
+  const rawColumnName = columns.find((c) => c._id === card.columnId)?.columnName;
+  const columnName = rawColumnName && rawColumnName !== 'Add title' ? rawColumnName : '';
   const assignee = users.find((user) => user._id === assigned);
 
   const handleCardDelete = async () => {
@@ -92,15 +98,13 @@ const CardDetailsModal: FC<Props> = ({ onClose, isOpen, card }) => {
           as={Button}
           size="sm"
           width="100%"
-          variant="outline"
-          borderColor="line"
-          bg="surface"
+          variant="quiet"
           fontWeight={400}
           textAlign="left"
           rightIcon={<FiChevronDown />}>
           {assignee ? (
             <Box as="span" display="inline-flex" alignItems="center" sx={{ gap: '8px' }}>
-              <Avatar size="2xs" name={assignee.fullName} bg="ink" color="white" />
+              <Avatar size="2xs" name={assignee.fullName} bg="night" color="white" />
               <Box as="span" isTruncated>
                 {assignee.fullName}
               </Box>
@@ -114,11 +118,11 @@ const CardDetailsModal: FC<Props> = ({ onClose, isOpen, card }) => {
         <MenuList>
           {users.map((user) => (
             <MenuItem key={user._id} onClick={() => handleClick(user._id)}>
-              <Avatar size="2xs" name={user.fullName} bg="ink" color="white" mr="8px" />
+              <Avatar size="2xs" name={user.fullName} bg="night" color="white" mr="8px" />
               {user?.fullName}
             </MenuItem>
           ))}
-          <MenuDivider borderColor="line" />
+          <MenuDivider />
           <MenuItem onClick={() => handleClick('')}>Unassign</MenuItem>
         </MenuList>
       </Menu>
@@ -126,53 +130,75 @@ const CardDetailsModal: FC<Props> = ({ onClose, isOpen, card }) => {
   };
 
   return (
-    <Modal size="xl" onClose={handleModalClose} isOpen={isOpen} isCentered>
+    <Modal size="xl" onClose={handleModalClose} isOpen={isOpen} isCentered scrollBehavior="inside">
       <ModalOverlay />
       {/* https://github.com/chakra-ui/chakra-ui/discussions/2676 */}
-      <ModalContent maxW="760px" mx="16px">
-        <ModalCloseButton aria-label="Save and close" top="14px" right="14px" />
-        <ModalBody pt="24px" px={['20px', '28px']} pb="8px">
+      <ModalContent maxW="800px" mx={['8px', '16px']} my={['8px', '16px']}>
+        <ModalCloseButton aria-label="Save and close" top="16px" right="16px" />
+        <Box px={['20px', '28px']} pt="22px" pb="16px" borderBottom="1px solid" borderColor="line">
+          <Text fontSize="13px" color="muted" pr="48px">
+            {columnName ? (
+              <>
+                In column <strong>{columnName}</strong>
+              </>
+            ) : (
+              'Card'
+            )}
+          </Text>
           <Input
             name="title"
             aria-label="Card title"
             variant="unstyled"
-            value={title}
+            value={title === 'Add title' ? '' : title}
             fontFamily="heading"
-            fontWeight={600}
-            fontSize="22px"
+            fontWeight={700}
+            fontSize={['20px', '24px']}
             letterSpacing="-0.02em"
+            mt="4px"
             pr="40px"
+            sx={{ fontStretch: '112%' }}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Card title"
+            placeholder="Name this card"
           />
+        </Box>
+        <ModalBody px={['20px', '28px']} py="20px" className="tessera-scroll">
           <Box
             display="grid"
-            gridTemplateColumns={['1fr', '1fr', '1fr 200px']}
-            gridGap={['20px', '20px', '28px']}
-            mt="20px">
+            gridTemplateColumns={['1fr', '1fr', 'minmax(0, 1fr) 216px']}
+            gridGap={['20px', '20px', '28px']}>
             <Box minWidth="0" order={[2, 2, 1]}>
               <FieldLabel>Description</FieldLabel>
               <QuillEditor value={description} onChange={setDescription} />
             </Box>
-            <Box order={[1, 1, 2]} display="flex" flexDirection="column" sx={{ gap: '16px' }}>
-              <Box>
+            <Box
+              order={[1, 1, 2]}
+              display="grid"
+              gridTemplateColumns={['1fr 1fr', '1fr 1fr', '1fr']}
+              gridGap="16px"
+              alignContent="start">
+              <Box minWidth="0">
                 <FieldLabel>Label</FieldLabel>
                 <CardLabel id={card._id} boardId={card.boardId} value={label} onChange={setLabel} />
               </Box>
-              <Box>
+              <Box minWidth="0">
                 <FieldLabel>Assignee</FieldLabel>
                 {assignToMenu()}
               </Box>
             </Box>
           </Box>
         </ModalBody>
-        <ModalFooter justifyContent="space-between" px={['20px', '28px']} pb="20px" pt="20px">
+        <ModalFooter
+          justifyContent="space-between"
+          px={['20px', '28px']}
+          py="14px"
+          borderTop="1px solid"
+          borderColor="line"
+          bg="marble"
+          borderBottomRadius="panel">
           <Button
             size="sm"
-            variant="ghost"
-            color="danger"
+            variant="dangerQuiet"
             leftIcon={<FiTrash2 />}
-            _hover={{ bg: 'rgba(199, 64, 90, 0.08)' }}
             onClick={handleCardDelete}
             isDisabled={cardDelete}
             isLoading={cardDelete}
@@ -182,11 +208,12 @@ const CardDetailsModal: FC<Props> = ({ onClose, isOpen, card }) => {
           <Button
             size="sm"
             colorScheme="brand"
+            px="18px"
             onClick={handleModalClose}
             isDisabled={cardRequest}
             isLoading={cardRequest}
             loadingText="Saving">
-            Done
+            Save and close
           </Button>
         </ModalFooter>
       </ModalContent>

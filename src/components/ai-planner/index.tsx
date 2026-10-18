@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { createContext, FC, useContext, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import {
@@ -18,7 +18,6 @@ import {
   IconButton,
   ListItem,
   Select,
-  Spinner,
   Tag,
   TagCloseButton,
   TagLabel,
@@ -29,12 +28,14 @@ import {
   UnorderedList,
   useDisclosure
 } from '@chakra-ui/react';
-import { FiFileText, FiImage, FiPaperclip } from 'react-icons/fi';
+import { keyframes } from '@emotion/react';
+import { FiArrowUp, FiFileText, FiImage, FiPaperclip } from 'react-icons/fi';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from '@/src/hooks';
 import { fetchBoards } from '@/src/slices/boards';
 import checkEnvironment from '@/util/check-environment';
 import PlanPreview from '@/src/components/ai-planner/plan-preview';
+import { AiMark } from '@/src/components/brand/logo';
 import {
   ACCEPT,
   MAX_FILES,
@@ -42,10 +43,6 @@ import {
   readAttachment
 } from '@/src/components/ai-planner/read-attachment';
 import { ChatMessage, Member, Plan, PlanResponse, UploadAttachment } from '@/src/types/ai';
-
-type Props = {
-  buttonProps?: ButtonProps | Record<string, unknown>;
-};
 
 // Assistant turns also carry the plan's open questions and risks for display.
 // User turns can carry uploaded files (kept for Regenerate) and the document text the
@@ -57,9 +54,14 @@ type ThreadMessage = ChatMessage & {
   context?: string;
 };
 
-const defaultButtonProps = { size: 'sm', colorScheme: 'brand' };
-
 const FILE_ONLY_PROMPT = 'Generate tickets from the attached file(s).';
+
+// Starting points shown before the first message; picking one fills the composer
+const EXAMPLE_BRIEFS = [
+  'Launch a mobile checkout in 3 weeks: payments, cart, order tracking.',
+  'Redesign our marketing site in 4 weeks: new pages, CMS migration, analytics.',
+  'Ship a customer feedback portal in 6 weeks with voting, comments and an admin view.'
+];
 
 const toApiMessages = (thread: ThreadMessage[]): ChatMessage[] =>
   thread.map(({ role, content }) => ({ role, content }));
@@ -71,10 +73,57 @@ const toPlanMessages = (thread: ThreadMessage[]): ChatMessage[] =>
     content: context && i < thread.length - 1 ? `${content}\n\n${context}` : content
   }));
 
+const settle = keyframes`
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.35; }
+  45% { transform: translateY(-4px) rotate(12deg); opacity: 1; }
+`;
+
+// Three tiles lifting in turn while the planner works
+const PlanningIndicator = () => (
+  <Box
+    role="status"
+    alignSelf="flex-start"
+    display="flex"
+    alignItems="center"
+    sx={{ gap: '12px' }}
+    bg="surface"
+    border="1px solid"
+    borderColor="line"
+    borderRadius="panel"
+    px="14px"
+    py="12px"
+    fontSize="14px"
+    color="muted">
+    <Box display="flex" sx={{ gap: '4px' }} aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <Box
+          key={i}
+          width="9px"
+          height="9px"
+          borderRadius="2px"
+          bg={i === 1 ? 'gold.500' : 'night'}
+          sx={{ animation: `${settle} 1.1s ${i * 0.15}s ease-in-out infinite` }}
+        />
+      ))}
+    </Box>
+    Drafting the plan with DeepSeek…
+  </Box>
+);
+
 const FileChip = ({ file, onRemove }: { file: UploadAttachment; onRemove?: () => void }) => (
-  <Tag size="sm" variant="subtle" colorScheme={file.isImage ? 'purple' : 'gray'} maxW="100%">
-    <TagLeftIcon as={file.isImage ? FiImage : FiFileText} />
-    <TagLabel isTruncated>{file.name}</TagLabel>
+  <Tag
+    size="md"
+    variant="subtle"
+    bg={file.isImage ? 'goldWash' : 'marble'}
+    color="ink"
+    border="1px solid"
+    borderColor="line"
+    borderRadius="control"
+    maxW="100%">
+    <TagLeftIcon as={file.isImage ? FiImage : FiFileText} color="muted" />
+    <TagLabel isTruncated fontSize="13px">
+      {file.name}
+    </TagLabel>
     {onRemove && <TagCloseButton aria-label={`Remove ${file.name}`} onClick={onRemove} />}
   </Tag>
 );
@@ -83,11 +132,11 @@ const SmallList = ({ title, items }: { title: string; items?: string[] }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <Box mt="8px">
-      <Text fontSize="12px" fontWeight={600}>
+    <Box mt="12px" pt="10px" borderTop="1px solid" borderColor="line">
+      <Text fontSize="13px" fontWeight={650}>
         {title}
       </Text>
-      <UnorderedList fontSize="12px" ml="16px" spacing="2px">
+      <UnorderedList fontSize="13px" ml="18px" mt="4px" spacing="3px" color="muted">
         {items.map((item, i) => (
           <ListItem key={i}>{item}</ListItem>
         ))}
@@ -96,13 +145,32 @@ const SmallList = ({ title, items }: { title: string; items?: string[] }) => {
   );
 };
 
-const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => {
+type ContextValue = { open: () => void };
+
+const AiPlannerContext = createContext<ContextValue>({ open: () => undefined });
+
+export const useAiPlanner = (): ContextValue => useContext(AiPlannerContext);
+
+type TriggerProps = ButtonProps & { label?: string };
+
+// Any number of triggers can open the one planner drawer, so a draft survives between them
+export const AiPlannerButton: FC<TriggerProps> = ({ label = 'Plan with AI', ...props }) => {
+  const { open } = useAiPlanner();
+
+  return (
+    <Button variant="ai" leftIcon={<AiMark size={15} color="#141B4D" />} onClick={open} {...props}>
+      {label}
+    </Button>
+  );
+};
+
+export const AiPlannerProvider: FC = ({ children }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const router = useRouter();
   const dispatch = useDispatch();
-  const btnRef = useRef();
   const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const draftRef = useRef<HTMLTextAreaElement>(null);
 
   const currentBoard = useAppSelector((state) => state.board.board);
   const boards = useAppSelector((state) => state.boards.boards);
@@ -289,54 +357,73 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
     handleApplied();
   };
 
+  const applyExample = (text: string) => {
+    setDraft(text);
+    draftRef.current?.focus();
+  };
+
   const membersWithoutSkills = members.filter((m) => !m.skills || m.skills.length === 0);
+  const canSend = (draft.trim() || pendingFiles.length > 0) && !isReadingFiles && targetBoardId;
+  const hasNoBoards = !isLocked && (!boards || boards.length === 0);
 
   return (
-    <>
-      <Button ref={btnRef} onClick={onOpen} {...buttonProps}>
-        <span role="img" aria-hidden="true">
-          ✨
-        </span>
-        &nbsp;AI Planner
-      </Button>
-      <Drawer size="md" isOpen={isOpen} placement="right" onClose={onClose} finalFocusRef={btnRef}>
+    <AiPlannerContext.Provider value={{ open: onOpen }}>
+      {children}
+      <Drawer
+        size="md"
+        isOpen={isOpen}
+        placement="right"
+        onClose={onClose}
+        initialFocusRef={draftRef}>
         <DrawerOverlay />
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader borderBottom="1px solid" borderColor="line">
-            <Text>
-              <span role="img" aria-hidden="true">
-                ✨
-              </span>
-              &nbsp;AI Planner
-            </Text>
+        <DrawerContent maxW={['100vw', '560px']} bg="marble">
+          <DrawerCloseButton color="white" top="14px" _hover={{ bg: 'whiteAlpha.200' }} />
+          <DrawerHeader bg="night" color="white" pt="18px" pb="16px" px={['16px', '24px']}>
+            <Box display="flex" alignItems="center" sx={{ gap: '10px' }} pr="36px">
+              <AiMark size={18} />
+              <Text as="span">AI planner</Text>
+            </Box>
             {isLocked ? (
-              <Text fontSize="13px" fontWeight={400} color="muted" mt="4px">
-                Planning for <strong>{currentBoard.name}</strong>
+              <Text fontSize="14px" fontWeight={400} color="whiteAlpha.800" mt="6px" isTruncated>
+                Planning for {currentBoard.name}
               </Text>
             ) : (
-              <Select
-                mt="8px"
-                size="sm"
-                placeholder={boards?.length ? 'Choose a board' : 'No boards yet'}
-                value={selectedBoardId}
-                onChange={handleBoardChange}
-                aria-label="Target board">
-                {(boards || []).map((b) => (
-                  <option key={b._id} value={b._id}>
-                    {b.name}
-                  </option>
-                ))}
-              </Select>
+              <Box mt="12px" display="flex" alignItems="center" sx={{ gap: '10px' }}>
+                <Text
+                  as="label"
+                  htmlFor="planner-board"
+                  fontSize="13px"
+                  fontWeight={500}
+                  color="whiteAlpha.800"
+                  flexShrink={0}>
+                  Board
+                </Text>
+                <Select
+                  id="planner-board"
+                  size="sm"
+                  color="ink"
+                  placeholder={boards?.length ? 'Choose a board' : 'No boards yet'}
+                  value={selectedBoardId}
+                  onChange={handleBoardChange}>
+                  {(boards || []).map((b) => (
+                    <option key={b._id} value={b._id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
             )}
           </DrawerHeader>
 
           <DrawerBody
-            py="16px"
-            bg={isDragging ? 'brand.50' : 'plaster'}
+            className="tessera-scroll"
+            py="20px"
+            px={['16px', '24px']}
+            bg={isDragging ? 'goldWash' : 'marble'}
             outline={isDragging ? '2px dashed' : 'none'}
-            outlineColor="brand.400"
-            outlineOffset="-8px"
+            outlineColor="gold.500"
+            outlineOffset="-10px"
+            transition="background-color 140ms"
             onDragOver={(e) => {
               e.preventDefault();
               if (!isDragging) setIsDragging(true);
@@ -344,88 +431,147 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}>
             {messages.length === 0 && !loading && (
-              <Box fontSize="14px" color="muted" textAlign="center" mt="32px" px="16px">
-                Describe your project — goals, scope, deadline — and DeepSeek will draft columns and
-                task cards, assigning them to board members by skill. Keep chatting to refine it.
-                <Text mt="10px" fontSize="13px">
+              <Box>
+                <Text textStyle="sectionTitle">Describe the project</Text>
+                <Text fontSize="14px" color="muted" mt="6px" lineHeight="1.6">
+                  Include the goal, what is in scope and the deadline. The planner drafts columns
+                  and task cards, then assigns each card to a board member whose skills fit. Keep
+                  chatting to adjust the draft before anything is added to the board.
+                </Text>
+                <Text fontSize="13px" color="muted" mt="10px" lineHeight="1.6">
                   You can also attach or drop a spec (PDF, Word, PowerPoint, Excel, text) or an
                   image such as a wireframe or whiteboard photo.
                 </Text>
+                {hasNoBoards ? (
+                  <Box
+                    mt="20px"
+                    p="14px"
+                    bg="surface"
+                    border="1px solid"
+                    borderColor="line"
+                    borderRadius="panel"
+                    fontSize="14px">
+                    The planner adds cards to an existing board.{' '}
+                    <Link href="/boards" passHref>
+                      <Box as="a" color="lapis" fontWeight={600} textDecoration="underline">
+                        Create a board first
+                      </Box>
+                    </Link>
+                    .
+                  </Box>
+                ) : (
+                  <Box mt="20px">
+                    <Text fontSize="13px" fontWeight={600} mb="8px">
+                      Start from an example
+                    </Text>
+                    <Box display="flex" flexDirection="column" sx={{ gap: '6px' }}>
+                      {EXAMPLE_BRIEFS.map((example) => (
+                        <Box
+                          as="button"
+                          type="button"
+                          key={example}
+                          textAlign="left"
+                          fontSize="14px"
+                          lineHeight="1.45"
+                          px="12px"
+                          py="10px"
+                          bg="surface"
+                          border="1px solid"
+                          borderColor="line"
+                          borderRadius="control"
+                          transition="border-color 140ms, transform 140ms"
+                          _hover={{ borderColor: 'gold.400' }}
+                          _active={{ transform: 'translateY(1px)' }}
+                          onClick={() => applyExample(example)}>
+                          {example}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
               </Box>
             )}
 
-            <Box display="flex" flexDirection="column" sx={{ gap: '10px' }}>
+            <Box display="flex" flexDirection="column" sx={{ gap: '12px' }}>
               {messages.map((m, i) => {
                 const isUser = m.role === 'user';
+
+                if (isUser) {
+                  return (
+                    <Box
+                      key={i}
+                      alignSelf="flex-end"
+                      maxW="88%"
+                      bg="night"
+                      color="white"
+                      borderRadius="12px 12px 4px 12px"
+                      px="14px"
+                      py="10px"
+                      fontSize="14px"
+                      lineHeight="1.5"
+                      whiteSpace="pre-wrap">
+                      {m.content}
+                      {m.uploads && (
+                        <Box display="flex" flexWrap="wrap" sx={{ gap: '4px' }} mt="8px">
+                          {m.uploads.map((f) => (
+                            <FileChip key={f.name} file={f} />
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                }
 
                 return (
                   <Box
                     key={i}
-                    alignSelf={isUser ? 'flex-end' : 'flex-start'}
-                    maxW="85%"
-                    bg={isUser ? 'brand.500' : 'white'}
-                    color={isUser ? 'white' : 'ink'}
-                    border={isUser ? 'none' : '1px solid'}
+                    alignSelf="flex-start"
+                    maxW="94%"
+                    bg="surface"
+                    border="1px solid"
                     borderColor="line"
-                    borderRadius="12px"
-                    px="12px"
-                    py="8px"
+                    borderRadius="12px 12px 12px 4px"
+                    px="14px"
+                    py="12px"
                     fontSize="14px"
-                    whiteSpace="pre-wrap">
-                    {m.content}
-                    {m.uploads && (
-                      <Box display="flex" flexWrap="wrap" sx={{ gap: '4px' }} mt="6px">
-                        {m.uploads.map((f) => (
-                          <FileChip key={f.name} file={f} />
-                        ))}
-                      </Box>
-                    )}
-                    {!isUser && (
-                      <>
-                        <SmallList title="Open questions" items={m.questions} />
-                        <SmallList title="Risks" items={m.risks} />
-                      </>
-                    )}
+                    lineHeight="1.55">
+                    <Box
+                      display="flex"
+                      alignItems="center"
+                      sx={{ gap: '6px' }}
+                      mb="6px"
+                      color="goldInk"
+                      fontSize="12px"
+                      fontWeight={650}>
+                      <AiMark size={12} />
+                      Planner
+                    </Box>
+                    <Text whiteSpace="pre-wrap">{m.content}</Text>
+                    <SmallList title="Open questions" items={m.questions} />
+                    <SmallList title="Risks" items={m.risks} />
                   </Box>
                 );
               })}
 
-              {loading && (
-                <Box
-                  alignSelf="flex-start"
-                  display="flex"
-                  alignItems="center"
-                  sx={{ gap: '8px' }}
-                  bg="white"
-                  border="1px solid"
-                  borderColor="line"
-                  borderRadius="12px"
-                  px="12px"
-                  py="8px"
-                  fontSize="14px"
-                  color="muted">
-                  <Spinner size="sm" />
-                  Planning with DeepSeek…
-                </Box>
-              )}
+              {loading && <PlanningIndicator />}
             </Box>
 
             {error && (
-              <Alert status="error" mt="12px" borderRadius="8px" fontSize="13px">
+              <Alert status="error" mt="14px" fontSize="14px">
                 <AlertIcon />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             {membersWithoutSkills.length > 0 && (
-              <Alert status="warning" mt="12px" borderRadius="8px" fontSize="12px" py="6px">
-                <AlertIcon boxSize="14px" />
+              <Alert status="warning" mt="14px" fontSize="13px" py="8px" bg="goldWash">
+                <AlertIcon boxSize="16px" color="gold.700" />
                 <AlertDescription>
                   {membersWithoutSkills.map((m) => m.fullName).join(', ')}{' '}
                   {membersWithoutSkills.length === 1 ? 'has' : 'have'} no skills listed, so
                   assignments may be less accurate.{' '}
                   <Link href="/settings" passHref>
-                    <Box as="a" textDecoration="underline" fontWeight={600}>
+                    <Box as="a" textDecoration="underline" fontWeight={650}>
                       Add skills in Settings
                     </Box>
                   </Link>
@@ -452,19 +598,11 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
           <DrawerFooter
             borderTop="1px solid"
             borderColor="line"
+            bg="surface"
             flexDirection="column"
-            alignItems="stretch">
-            {pendingFiles.length > 0 && (
-              <Box display="flex" flexWrap="wrap" sx={{ gap: '6px' }} mb="8px">
-                {pendingFiles.map((f, i) => (
-                  <FileChip
-                    key={`${f.name}-${i}`}
-                    file={f}
-                    onRemove={() => setPendingFiles(pendingFiles.filter((_, j) => j !== i))}
-                  />
-                ))}
-              </Box>
-            )}
+            alignItems="stretch"
+            px={['12px', '20px']}
+            py="14px">
             <input
               ref={fileInputRef}
               type="file"
@@ -475,53 +613,83 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
               aria-hidden="true"
               data-testid="ai-planner-file-input"
             />
-            <Textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                plan
-                  ? 'Refine the plan, e.g. "split the API work" or "give QA to Sara"'
-                  : 'e.g. Launch a mobile checkout in 3 weeks: payments, cart, order tracking…'
-              }
-              rows={3}
-              fontSize="14px"
-              resize="none"
-              isDisabled={loading}
-            />
-            <Box display="flex" alignItems="center" justifyContent="space-between" mt="8px">
-              <Box display="flex" alignItems="center" sx={{ gap: '8px' }}>
-                <Tooltip label="Attach a file or image (up to 3)">
-                  <IconButton
-                    aria-label="Attach a file or image"
-                    icon={<FiPaperclip />}
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => fileInputRef.current?.click()}
-                    isLoading={isReadingFiles}
-                    isDisabled={loading || pendingFiles.length >= MAX_FILES}
-                  />
-                </Tooltip>
-                <Text fontSize="12px" color="muted">
-                  Ctrl/⌘ + Enter to send
-                </Text>
+            <Box
+              border="1px solid"
+              borderColor="lineStrong"
+              borderRadius="panel"
+              bg="surface"
+              transition="border-color 140ms, box-shadow 140ms"
+              _focusWithin={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #2B44C7' }}>
+              {pendingFiles.length > 0 && (
+                <Box display="flex" flexWrap="wrap" sx={{ gap: '6px' }} px="10px" pt="10px">
+                  {pendingFiles.map((f, i) => (
+                    <FileChip
+                      key={`${f.name}-${i}`}
+                      file={f}
+                      onRemove={() => setPendingFiles(pendingFiles.filter((_, j) => j !== i))}
+                    />
+                  ))}
+                </Box>
+              )}
+              <Textarea
+                ref={draftRef}
+                aria-label={plan ? 'Refine the plan' : 'Describe the project'}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  plan
+                    ? 'Refine the plan, e.g. "split the API work" or "give QA to Sara"'
+                    : 'e.g. Launch a mobile checkout in 3 weeks: payments, cart, order tracking…'
+                }
+                rows={3}
+                fontSize="15px"
+                resize="none"
+                variant="unstyled"
+                px="12px"
+                pt="10px"
+                isDisabled={loading}
+              />
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                px="8px"
+                pb="8px">
+                <Box display="flex" alignItems="center" sx={{ gap: '6px' }}>
+                  <Tooltip label={`Attach a file or image (up to ${MAX_FILES})`}>
+                    <IconButton
+                      aria-label="Attach a file or image"
+                      icon={<FiPaperclip />}
+                      size="sm"
+                      variant="ghost"
+                      color="muted"
+                      onClick={() => fileInputRef.current?.click()}
+                      isLoading={isReadingFiles}
+                      isDisabled={loading || pendingFiles.length >= MAX_FILES}
+                    />
+                  </Tooltip>
+                  <Text fontSize="12px" color="muted" display={['none', 'block']}>
+                    Ctrl or ⌘ + Enter to send
+                  </Text>
+                </Box>
+                <Button
+                  colorScheme="brand"
+                  size="sm"
+                  rightIcon={<FiArrowUp />}
+                  onClick={handleSend}
+                  isLoading={loading}
+                  loadingText="Planning"
+                  isDisabled={!canSend}>
+                  {plan ? 'Send' : 'Draft plan'}
+                </Button>
               </Box>
-              <Button
-                colorScheme="brand"
-                size="sm"
-                onClick={handleSend}
-                isLoading={loading}
-                isDisabled={
-                  (!draft.trim() && pendingFiles.length === 0) || isReadingFiles || !targetBoardId
-                }>
-                Send
-              </Button>
             </Box>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-    </>
+    </AiPlannerContext.Provider>
   );
 };
 
-export default AiPlanner;
+export default AiPlannerProvider;

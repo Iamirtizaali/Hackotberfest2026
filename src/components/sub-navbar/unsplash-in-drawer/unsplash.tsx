@@ -109,12 +109,13 @@ const Unsplash = () => {
               backgroundImage={`url('${item.urls.small}')`}
               backgroundSize="cover"
               backgroundPosition="center"
-              borderRadius="tile"
+              borderRadius="control"
               paddingTop="66%"
-              outline={isSelected ? '2px solid #2B44C7' : 'none'}
+              outline={isSelected ? '3px solid #2B44C7' : 'none'}
               outlineOffset="2px"
-              transition="opacity 120ms"
-              _hover={{ opacity: 0.85 }}
+              transition="opacity 140ms, transform 140ms"
+              _hover={{ opacity: 0.88 }}
+              _active={{ transform: 'scale(0.98)' }}
               onClick={() => handleImageClick(item.urls.regular)}
             />
           );
@@ -125,8 +126,7 @@ const Unsplash = () => {
           <Button
             onClick={loadMoreImages}
             size="sm"
-            variant="outline"
-            borderColor="lineStrong"
+            variant="quiet"
             isLoading={isLoading}
             loadingText="Loading">
             Load more

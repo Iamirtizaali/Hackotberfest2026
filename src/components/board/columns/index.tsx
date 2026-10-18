@@ -3,6 +3,7 @@ import { Box, useDisclosure } from '@chakra-ui/react';
 import AddColumnButton from '@/src/components/board/columns/buttons/add-column-button';
 import CardDetailsModal from '@/src/components/board/columns/modals/card-details-modal';
 import Column from '@/src/components/board/columns/column';
+import EmptyBoard from '@/src/components/board/columns/empty-board';
 import { CardDetail } from '@/src/types/cards';
 import { useAppSelector } from '@/src/hooks';
 import { useDispatch } from 'react-redux';
@@ -145,7 +146,12 @@ const BoardColumns: FC = (): JSX.Element => {
   };
 
   return (
-    <Box flex="1" minHeight="0" overflowX="auto" className="tessera-scroll tessera-scroll--light">
+    <Box
+      flex="1"
+      minHeight="0"
+      overflowX="auto"
+      overflowY="hidden"
+      className="tessera-scroll tessera-scroll--light">
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="all-collumns" direction="horizontal" type="column">
           {(provided) => (
@@ -156,7 +162,7 @@ const BoardColumns: FC = (): JSX.Element => {
               alignItems="flex-start"
               height="100%"
               px={['12px', '20px']}
-              pt="4px"
+              pt={['12px', '16px']}
               pb="16px">
               {columns.map((column, index) => (
                 <Column
@@ -169,7 +175,11 @@ const BoardColumns: FC = (): JSX.Element => {
                 />
               ))}
               {provided.placeholder}
-              <AddColumnButton addColumn={addColumn} />
+              {columns.length === 0 ? (
+                <EmptyBoard addColumn={addColumn} />
+              ) : (
+                <AddColumnButton addColumn={addColumn} />
+              )}
             </Box>
           )}
         </Droppable>

@@ -22,7 +22,6 @@ import { deleteColumn, fetchColumns, updateColumn } from '@/src/slices/columns';
 import { addCard, fetchCards } from '@/src/slices/cards';
 import debounce from 'lodash.debounce';
 import { CardDetail } from '@/src/types/cards';
-import { useAppSelector } from '@/src/hooks';
 
 const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
   const dispatch = useDispatch();
@@ -32,21 +31,26 @@ const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
   useEffect(() => {
     if (showEditBox) titleInputRef.current?.focus();
   }, [showEditBox]);
-  const cardRequest = useAppSelector((state) => state.cards.isRequesting);
+  // Tracked per column so only the column being added to shows a spinner
+  const [isAddingCard, setIsAddingCard] = useState(false);
 
   const [columnName, setColumnName] = useState<string>(column.columnName);
   const cardsInSortedSequence = cards.sort(
     (cardA: CardDetail, cardB: CardDetail) => cardA.sequence - cardB.sequence
   );
 
+  const isUntitled = !columnName || columnName === 'Add title';
+
   const loadColumnTitle = (draggableProps) => {
     if (showEditBox) {
       return (
         <Input
           bg="surface"
-          value={columnName}
+          value={columnName === 'Add title' ? '' : columnName}
+          placeholder="Column name"
           size="sm"
-          fontWeight={600}
+          borderRadius="control"
+          fontWeight={620}
           aria-label="Column name"
           ref={titleInputRef}
           onChange={handleChange}
@@ -62,15 +66,33 @@ const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
         flex="1"
         minWidth="0"
         display="flex"
-        alignItems="baseline"
+        alignItems="center"
         sx={{ gap: '8px' }}
         px="4px"
+        minHeight="32px"
         cursor="grab"
         onDoubleClick={() => setEditBoxVisibility(true)}>
-        <Heading as="h2" fontSize="14px" fontFamily="body" letterSpacing="0" isTruncated>
-          {columnName || 'Untitled column'}
+        <Heading
+          as="h2"
+          fontSize="14px"
+          fontWeight={650}
+          fontFamily="body"
+          letterSpacing="-0.005em"
+          color={isUntitled ? 'muted' : 'ink'}
+          isTruncated>
+          {isUntitled ? 'Untitled column' : columnName}
         </Heading>
-        <Text fontSize="12px" color="muted" flexShrink={0}>
+        <Text
+          as="span"
+          fontSize="12px"
+          fontWeight={600}
+          color="muted"
+          bg="rgba(23, 28, 46, 0.06)"
+          borderRadius="tile"
+          px="6px"
+          lineHeight="18px"
+          flexShrink={0}
+          sx={{ fontVariantNumeric: 'tabular-nums' }}>
           {cards.length}
         </Text>
       </Box>
@@ -85,8 +107,10 @@ const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
   };
 
   const handleCardAdd = async () => {
+    setIsAddingCard(true);
     await dispatch(addCard(column._id));
     await dispatch(fetchCards());
+    setIsAddingCard(false);
   };
 
   const handleChange = (e) => {
@@ -118,16 +142,16 @@ const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
       {(provided, snapshot) => (
         <Box
           key={index}
-          width="280px"
+          width="288px"
           flexShrink={0}
           maxHeight="100%"
           mr="12px"
           display="flex"
           flexDirection="column"
-          bg="rgba(242, 243, 239, 0.94)"
+          bg="marble"
           borderRadius="panel"
-          boxShadow={snapshot.isDragging ? 'lifted' : 'none'}
-          sx={{ backdropFilter: 'blur(10px)' }}
+          boxShadow={snapshot.isDragging ? 'lifted' : '0 1px 2px rgba(20, 27, 77, 0.18)'}
+          transition="box-shadow 200ms"
           {...provided.draggableProps}
           ref={provided.innerRef}>
           <Box
@@ -138,7 +162,7 @@ const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
             pl="10px"
             pr="6px"
             pt="8px"
-            pb="6px">
+            pb="4px">
             {loadColumnTitle(provided.dragHandleProps)}
             <Menu placement="bottom-end">
               {({ isOpen }) => (
@@ -158,7 +182,7 @@ const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
                         <MenuItem icon={<FiEdit2 />} onClick={() => setEditBoxVisibility(true)}>
                           Rename column
                         </MenuItem>
-                        <MenuDivider borderColor="line" />
+                        <MenuDivider />
                         <MenuItem icon={<FiTrash2 />} color="danger" onClick={handleColumnDelete}>
                           Delete column
                         </MenuItem>
@@ -194,9 +218,9 @@ const Column = ({ showCardDetail, column, index, id, cards }): JSX.Element => {
               variant="ghost"
               color="muted"
               fontSize="13px"
-              _hover={{ bg: 'rgba(30, 41, 37, 0.06)', color: 'ink' }}
-              isDisabled={cardRequest}
-              isLoading={cardRequest}
+              _hover={{ bg: 'rgba(23, 28, 46, 0.06)', color: 'ink' }}
+              isDisabled={isAddingCard}
+              isLoading={isAddingCard}
               loadingText="Adding card"
               onClick={handleCardAdd}>
               Add a card

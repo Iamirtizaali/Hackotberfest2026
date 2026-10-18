@@ -1,9 +1,9 @@
 import React, { FC, ReactNode } from 'react';
-import { Box, Heading, Text } from '@chakra-ui/react';
+import { Box, Text } from '@chakra-ui/react';
 
 type Props = {
   title: string;
-  description?: string;
+  description?: ReactNode;
   actions?: ReactNode;
 };
 
@@ -15,18 +15,25 @@ const PageHeader: FC<Props> = ({ title, description, actions }) => {
       alignItems={['flex-start', 'flex-end']}
       justifyContent="space-between"
       sx={{ gap: '16px' }}
-      mb={['24px', '32px']}>
-      <Box>
-        <Heading as="h1" fontSize={['28px', '32px']} letterSpacing="-0.035em" lineHeight="1.1">
+      pb={['20px', '24px']}
+      mb={['24px', '32px']}
+      borderBottom="1px solid"
+      borderColor="line">
+      <Box minWidth="0">
+        <Text as="h1" textStyle="pageTitle">
           {title}
-        </Heading>
+        </Text>
         {description && (
-          <Text mt="6px" color="muted" fontSize="15px">
+          <Text mt="8px" color="muted" fontSize="15px" maxW="60ch">
             {description}
           </Text>
         )}
       </Box>
-      {actions}
+      {actions && (
+        <Box display="flex" flexWrap="wrap" sx={{ gap: '8px' }} flexShrink={0}>
+          {actions}
+        </Box>
+      )}
     </Box>
   );
 };

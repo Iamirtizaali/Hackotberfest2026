@@ -8,6 +8,7 @@ import {
   DrawerOverlay,
   DrawerContent,
   DrawerCloseButton,
+  Text,
   Tooltip,
   useDisclosure
 } from '@chakra-ui/react';
@@ -18,7 +19,6 @@ import React from 'react';
 import { FiImage } from 'react-icons/fi';
 import Unsplash from '@/src/components/sub-navbar/unsplash-in-drawer/unsplash';
 import { useAppSelector } from '@/src/hooks';
-import { onPhotoButton } from '@/src/components/sub-navbar/on-photo-button';
 
 const UnsplashDrawer = (): JSX.Element => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -41,15 +41,19 @@ const UnsplashDrawer = (): JSX.Element => {
           icon={<FiImage />}
           ref={btnRef}
           onClick={onOpen}
-          {...onPhotoButton}
+          variant="onNight"
+          size="sm"
         />
       </Tooltip>
       <Drawer size="sm" isOpen={isOpen} placement="right" onClose={onClose} finalFocusRef={btnRef}>
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerCloseButton />
+          <DrawerCloseButton top="14px" />
           <DrawerHeader borderBottom="1px solid" borderColor="line">
             Background
+            <Text fontSize="14px" fontWeight={400} color="muted" mt="4px" letterSpacing="0">
+              Pick a photo from Unsplash. Everyone on the board sees it.
+            </Text>
           </DrawerHeader>
           <DrawerBody py="20px">
             <Unsplash />

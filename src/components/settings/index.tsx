@@ -3,7 +3,7 @@ import {
   Avatar,
   Box,
   Button,
-  Heading,
+  FormLabel,
   Input,
   Tag,
   TagCloseButton,
@@ -11,6 +11,7 @@ import {
   Text,
   useToast
 } from '@chakra-ui/react';
+import { FiPlus } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '@/src/hooks';
 import { saveProfile } from '@/src/slices/user';
 import PageHeader from '@/src/components/app-shell/page-header';
@@ -32,6 +33,36 @@ const SKILL_SUGGESTIONS = [
 
 const MAX_SKILLS = 20;
 const MAX_SKILL_LENGTH = 40;
+
+// Settings read as a ledger: what a section is for on the left, its fields on the right
+const Section: React.FC<{ title: string; description: string }> = ({
+  title,
+  description,
+  children
+}) => (
+  <Box
+    as="section"
+    display="grid"
+    gridTemplateColumns={['1fr', '1fr', '1fr', '260px minmax(0, 640px)']}
+    gridGap={['14px', '14px', '14px', '40px']}
+    pb={['32px', '40px']}
+    mb={['32px', '40px']}
+    borderBottom="1px solid"
+    borderColor="line"
+    _last={{ borderBottom: 'none', mb: 0 }}>
+    <Box>
+      <Text as="h2" textStyle="sectionTitle">
+        {title}
+      </Text>
+      <Text fontSize="14px" color="muted" mt="6px" lineHeight="1.55">
+        {description}
+      </Text>
+    </Box>
+    <Box bg="surface" border="1px solid" borderColor="line" borderRadius="panel" boxShadow="tile">
+      {children}
+    </Box>
+  </Box>
+);
 
 const Settings = (): JSX.Element => {
   const dispatch = useAppDispatch();
@@ -123,18 +154,29 @@ const Settings = (): JSX.Element => {
     (s) => !skills.some((skill) => skill.toLowerCase() === s.toLowerCase())
   );
 
+  const isDirty =
+    role !== (user?.role || '') ||
+    skillInput.trim() !== '' ||
+    skills.join('|') !== (user?.skills || []).join('|');
+
   return (
     <>
-      <PageHeader title="Settings" description="Your account details." />
-      <Box bg="surface" border="1px solid" borderColor="line" borderRadius="panel" maxW="640px">
+      <PageHeader
+        title="Settings"
+        description="Your account and the work profile the AI planner reads."
+      />
+
+      <Section
+        title="Account"
+        description="Your name and email come from sign-up and are shown to people on your boards.">
         <Box display="flex" alignItems="center" sx={{ gap: '14px' }} p="20px">
-          <Avatar size="md" name={user?.fullName} bg="ink" color="white" />
+          <Avatar size="md" name={user?.fullName} bg="night" color="white" />
           <Box minWidth="0">
-            <Heading as="h2" fontSize="17px" isTruncated>
+            <Text fontSize="16px" fontWeight={650} isTruncated>
               {user?.fullName}
-            </Heading>
+            </Text>
             <Text fontSize="14px" color="muted" isTruncated>
-              {user?.role || user?.email}
+              {user?.role || 'No role set'}
             </Text>
           </Box>
         </Box>
@@ -147,53 +189,25 @@ const Settings = (): JSX.Element => {
             borderColor="line"
             px="20px"
             py="14px"
-            fontSize="14px">
-            <Text width={['auto', '160px']} color="muted" flexShrink={0}>
+            fontSize="14px"
+            sx={{ gap: '4px' }}>
+            <Text width={['auto', '140px']} color="muted" flexShrink={0}>
               {row.label}
             </Text>
-            <Text fontWeight={500} wordBreak="break-word">
+            <Text fontWeight={560} wordBreak="break-word">
               {row.value || '—'}
             </Text>
           </Box>
         ))}
-      </Box>
+      </Section>
 
-      <Box
-        bg="surface"
-        border="1px solid"
-        borderColor="line"
-        borderRadius="panel"
-        maxW="640px"
-        mt="20px">
-        <Box p="20px" pb="6px">
-          <Heading as="h2" fontSize="17px">
-            Work profile
-          </Heading>
-          <Text fontSize="14px" color="muted" mt="2px">
-            The AI planner uses your role and skills to assign tasks to you.
-          </Text>
-        </Box>
-
-        <Box
-          display="flex"
-          flexDirection={['column', 'row']}
-          px="20px"
-          py="14px"
-          fontSize="14px"
-          sx={{ gap: '8px' }}>
-          <Text
-            as="label"
-            htmlFor="profile-role"
-            width={['auto', '160px']}
-            color="muted"
-            flexShrink={0}
-            pt="6px">
-            Role
-          </Text>
+      <Section
+        title="Work profile"
+        description="The AI planner matches cards to people by role and skills. A short, accurate list gives better assignments than a long one.">
+        <Box px="20px" pt="20px">
+          <FormLabel htmlFor="profile-role">Role</FormLabel>
           <Input
             id="profile-role"
-            size="sm"
-            borderRadius="6px"
             placeholder="e.g. Frontend Developer"
             maxLength={60}
             value={role}
@@ -201,99 +215,105 @@ const Settings = (): JSX.Element => {
           />
         </Box>
 
-        <Box
-          display="flex"
-          flexDirection={['column', 'row']}
-          borderTop="1px solid"
-          borderColor="line"
-          px="20px"
-          py="14px"
-          fontSize="14px"
-          sx={{ gap: '8px' }}>
-          <Text
-            as="label"
-            htmlFor="profile-skills"
-            width={['auto', '160px']}
-            color="muted"
-            flexShrink={0}
-            pt="6px">
-            Skills
+        <Box px="20px" pt="20px" pb="20px">
+          <FormLabel htmlFor="profile-skills">Skills</FormLabel>
+          <Box
+            display="flex"
+            flexWrap="wrap"
+            alignItems="center"
+            sx={{ gap: '6px' }}
+            border="1px solid"
+            borderColor="lineStrong"
+            borderRadius="control"
+            bg="surface"
+            px="8px"
+            py="6px"
+            minHeight="40px"
+            transition="border-color 140ms, box-shadow 140ms"
+            _hover={{ borderColor: '#9DA1AE' }}
+            _focusWithin={{ borderColor: 'brand.500', boxShadow: '0 0 0 1px #2B44C7' }}>
+            {skills.map((skill) => (
+              <Tag
+                key={skill}
+                size="md"
+                borderRadius="tile"
+                bg="brand.50"
+                color="brand.700"
+                fontWeight={560}>
+                <TagLabel>{skill}</TagLabel>
+                <TagCloseButton aria-label={`Remove ${skill}`} onClick={() => removeSkill(skill)} />
+              </Tag>
+            ))}
+            <Input
+              id="profile-skills"
+              variant="unstyled"
+              size="sm"
+              flex="1"
+              minWidth="140px"
+              px="4px"
+              fontSize="14px"
+              placeholder={skills.length ? 'Add a skill' : 'Type a skill and press Enter'}
+              value={skillInput}
+              isDisabled={skills.length >= MAX_SKILLS}
+              maxLength={MAX_SKILL_LENGTH}
+              onChange={handleSkillChange}
+              onKeyDown={handleSkillKeyDown}
+            />
+          </Box>
+          <Text fontSize="13px" color="muted" mt="6px">
+            Press Enter or type a comma after each skill. Up to {MAX_SKILLS}.
           </Text>
-          <Box flex="1" minWidth="0">
-            <Box
-              display="flex"
-              flexWrap="wrap"
-              alignItems="center"
-              sx={{ gap: '6px' }}
-              border="1px solid"
-              borderColor="line"
-              borderRadius="6px"
-              px="6px"
-              py="4px"
-              minHeight="32px">
-              {skills.map((skill) => (
-                <Tag key={skill} size="sm" borderRadius="full" variant="subtle" colorScheme="blue">
-                  <TagLabel>{skill}</TagLabel>
-                  <TagCloseButton
-                    aria-label={`Remove ${skill}`}
-                    onClick={() => removeSkill(skill)}
-                  />
-                </Tag>
-              ))}
-              <Input
-                id="profile-skills"
-                variant="unstyled"
-                size="sm"
-                flex="1"
-                minWidth="120px"
-                px="4px"
-                placeholder={skills.length ? 'Add a skill' : 'Type a skill and press Enter'}
-                value={skillInput}
-                isDisabled={skills.length >= MAX_SKILLS}
-                maxLength={MAX_SKILL_LENGTH}
-                onChange={handleSkillChange}
-                onKeyDown={handleSkillKeyDown}
-              />
-            </Box>
-            {suggestions.length > 0 && skills.length < MAX_SKILLS && (
-              <Box display="flex" flexWrap="wrap" sx={{ gap: '6px' }} mt="10px">
+          {suggestions.length > 0 && skills.length < MAX_SKILLS && (
+            <Box mt="14px">
+              <Text fontSize="13px" fontWeight={600} mb="8px">
+                Common skills
+              </Text>
+              <Box display="flex" flexWrap="wrap" sx={{ gap: '6px' }}>
                 {suggestions.map((s) => (
                   <Button
                     key={s}
                     size="xs"
-                    variant="outline"
-                    borderRadius="full"
+                    height="28px"
+                    variant="quiet"
+                    borderRadius="tile"
                     fontWeight={500}
+                    fontSize="13px"
                     color="muted"
-                    borderColor="line"
+                    leftIcon={<FiPlus />}
+                    iconSpacing="4px"
                     onClick={() => addSkill(s)}>
-                    + {s}
+                    {s}
                   </Button>
                 ))}
               </Box>
-            )}
-          </Box>
+            </Box>
+          )}
         </Box>
 
         <Box
           display="flex"
-          justifyContent="flex-end"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ gap: '12px' }}
           borderTop="1px solid"
           borderColor="line"
+          bg="marble"
+          borderBottomRadius="panel"
           px="20px"
           py="12px">
+          <Text fontSize="13px" color="muted" aria-live="polite">
+            {isDirty ? 'You have unsaved changes.' : 'All changes saved.'}
+          </Text>
           <Button
             size="sm"
-            bg="ink"
-            color="white"
-            _hover={{ opacity: 0.9 }}
+            colorScheme="brand"
             isLoading={user?.isSaving}
             loadingText="Saving"
             onClick={handleSave}>
             Save profile
           </Button>
         </Box>
-      </Box>
+      </Section>
     </>
   );
 };

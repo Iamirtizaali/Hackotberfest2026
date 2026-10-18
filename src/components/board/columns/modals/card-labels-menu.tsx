@@ -47,9 +47,7 @@ const CardLabel: FC<IProps> = ({ id, boardId, value, onChange }) => {
         as={Button}
         size="sm"
         width="100%"
-        variant="outline"
-        borderColor="line"
-        bg="surface"
+        variant="quiet"
         fontWeight={400}
         textAlign="left"
         rightIcon={<FiChevronDown />}>
@@ -67,7 +65,7 @@ const CardLabel: FC<IProps> = ({ id, boardId, value, onChange }) => {
             <LabelChip type={item.type} bg={item.bg} />
           </MenuItem>
         ))}
-        <MenuDivider borderColor="line" />
+        <MenuDivider />
         <MenuItem onClick={() => handleClick(null)}>Remove label</MenuItem>
       </MenuList>
     </Menu>

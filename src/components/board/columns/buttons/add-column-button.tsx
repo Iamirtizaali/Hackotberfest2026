@@ -12,19 +12,19 @@ const AddColumnButton: FC<Props> = ({ addColumn }) => {
   const columnRequest = useAppSelector((state) => state.columns.isRequesting);
 
   return (
-    <Box width="280px" flexShrink={0} pr="16px">
+    <Box width="288px" flexShrink={0} pr="20px">
       <Button
         width="100%"
-        height="44px"
+        height="46px"
         justifyContent="flex-start"
         leftIcon={<FiPlus />}
         fontSize="14px"
         borderRadius="panel"
-        bg="rgba(255, 255, 255, 0.18)"
+        bg="rgba(20, 27, 77, 0.45)"
         color="white"
-        _hover={{ bg: 'rgba(255, 255, 255, 0.28)' }}
-        _active={{ bg: 'rgba(255, 255, 255, 0.34)' }}
-        sx={{ backdropFilter: 'blur(8px)' }}
+        border="1.5px dashed rgba(255, 255, 255, 0.45)"
+        _hover={{ bg: 'rgba(20, 27, 77, 0.62)', borderColor: 'rgba(255, 255, 255, 0.7)' }}
+        _active={{ bg: 'rgba(20, 27, 77, 0.72)' }}
         onClick={addColumn}
         isLoading={columnRequest}
         isDisabled={columnRequest}

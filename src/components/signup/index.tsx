@@ -18,6 +18,7 @@ import shortId from 'shortid';
 import checkEnvironment from '@/util/check-environment';
 import { useRouter } from 'next/router';
 import AuthLayout from '@/src/components/auth-layout';
+import PasswordInput from '@/src/components/auth-layout/password-input';
 
 const SignUp = (): JSX.Element => {
   const [values, setValues] = useState({
@@ -119,7 +120,7 @@ const SignUp = (): JSX.Element => {
     if (!hasError) return;
 
     return (
-      <Alert status="error" borderRadius="tile" mb="20px" pr="40px" fontSize="sm">
+      <Alert status="error" mb="20px" pr="40px" fontSize="sm">
         <AlertDescription>
           An account with this email already exists. Log in instead.
         </AlertDescription>
@@ -187,9 +188,8 @@ const SignUp = (): JSX.Element => {
         </FormControl>
         <FormControl id="password" mt="20px" isRequired isInvalid={passwordErr}>
           <FormLabel>Password</FormLabel>
-          <Input
+          <PasswordInput
             {...inputProps}
-            type="password"
             name="password"
             value={values.password}
             onChange={handleChange}
@@ -207,9 +207,8 @@ const SignUp = (): JSX.Element => {
         </FormControl>
         <FormControl id="confirmPassword" mt="20px" isRequired isInvalid={passwordsDiffer}>
           <FormLabel>Confirm password</FormLabel>
-          <Input
+          <PasswordInput
             {...inputProps}
-            type="password"
             name="confirmPassword"
             value={values.confirmPassword}
             onChange={handleChange}
@@ -233,7 +232,7 @@ const SignUp = (): JSX.Element => {
       <Text mt="24px" fontSize="sm" color="muted">
         Already have an account?{' '}
         <NextLink href="/login" passHref>
-          <Text as="a" color="lapis" fontWeight={500} _hover={{ textDecoration: 'underline' }}>
+          <Text as="a" color="lapis" fontWeight={600} _hover={{ textDecoration: 'underline' }}>
             Log in
           </Text>
         </NextLink>

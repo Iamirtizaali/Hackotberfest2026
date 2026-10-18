@@ -13,12 +13,14 @@ import {
   FormControl,
   FormLabel,
   FormErrorMessage,
-  FormHelperText
+  FormHelperText,
+  IconButton,
+  Text,
+  Tooltip
 } from '@chakra-ui/react';
 import { FiUserPlus } from 'react-icons/fi';
 import checkEnvironment from '@/util/check-environment';
 import { useAppSelector } from '@/src/hooks';
-import { onPhotoButton } from '@/src/components/sub-navbar/on-photo-button';
 
 const host = checkEnvironment();
 
@@ -68,15 +70,36 @@ const InviteModal = () => {
 
   return (
     <>
-      <Button leftIcon={<FiUserPlus />} onClick={onOpen} {...onPhotoButton}>
+      <Button
+        leftIcon={<FiUserPlus />}
+        onClick={onOpen}
+        variant="onNight"
+        size="sm"
+        fontSize="13px"
+        display={['none', 'none', 'inline-flex']}>
         Invite
       </Button>
+      <Tooltip label="Invite to board">
+        <IconButton
+          aria-label="Invite to board"
+          icon={<FiUserPlus />}
+          onClick={onOpen}
+          variant="onNight"
+          size="sm"
+          display={['inline-flex', 'inline-flex', 'none']}
+        />
+      </Tooltip>
       <Modal onClose={onClose} isOpen={isOpen} initialFocusRef={inputRef} isCentered>
         <ModalOverlay />
         <ModalContent mx="16px">
           <form onSubmit={handleSubmit}>
-            <ModalHeader>Invite to {board?.name || 'board'}</ModalHeader>
-            <ModalCloseButton />
+            <ModalHeader pr="56px">
+              Invite to {board?.name || 'board'}
+              <Text fontSize="14px" fontWeight={400} color="muted" mt="4px" letterSpacing="0">
+                Invited people can open the board, move cards and be assigned work.
+              </Text>
+            </ModalHeader>
+            <ModalCloseButton top="14px" />
             <ModalBody>
               <FormControl id="invite-email" isInvalid={showEmailError}>
                 <FormLabel>Email</FormLabel>

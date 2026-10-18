@@ -16,6 +16,7 @@ import checkEnvironment from '@/util/check-environment';
 import { useRouter } from 'next/router';
 import inviteUser from '@/util/invite-user';
 import AuthLayout from '@/src/components/auth-layout';
+import PasswordInput from '@/src/components/auth-layout/password-input';
 
 const Login = () => {
   const [values, setValues] = useState({
@@ -101,7 +102,7 @@ const Login = () => {
     if (!hasError) return;
 
     return (
-      <Alert status="error" borderRadius="tile" mb="20px" pr="40px" fontSize="sm">
+      <Alert status="error" mb="20px" pr="40px" fontSize="sm">
         <AlertDescription>
           {hasError === 'server'
             ? 'We couldn’t sign you in because of a server problem. Please try again shortly.'
@@ -140,8 +141,7 @@ const Login = () => {
         </FormControl>
         <FormControl id="password" mt="20px">
           <FormLabel>Password</FormLabel>
-          <Input
-            type="password"
+          <PasswordInput
             name="password"
             size="lg"
             fontSize="md"
@@ -165,7 +165,7 @@ const Login = () => {
       <Text mt="24px" fontSize="sm" color="muted">
         New to Tessera?{' '}
         <NextLink href="/signup" passHref>
-          <Text as="a" color="lapis" fontWeight={500} _hover={{ textDecoration: 'underline' }}>
+          <Text as="a" color="lapis" fontWeight={600} _hover={{ textDecoration: 'underline' }}>
             Create an account
           </Text>
         </NextLink>
