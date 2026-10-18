@@ -3,7 +3,15 @@
 const DEFAULT_BASE_URL = 'https://api.deepseek.com';
 const TIMEOUT_MS = 120000;
 
-export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+// Content is plain text, or text + image parts (OpenAI vision format) for image attachments
+export type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+export type ChatMessage = {
+  role: 'system' | 'user' | 'assistant';
+  content: string | ContentPart[];
+};
 
 export type DeepSeekErrorCode = 'missing_key' | 'upstream' | 'bad_json' | 'timeout';
 

@@ -40,7 +40,10 @@ export type ChatMessage = {
   content: string;
 };
 
-export type PlanResponse = { plan: Plan; members: Member[] };
+// A file attached in the AI Planner, base64-encoded for the JSON request
+export type UploadAttachment = { name: string; type: string; data: string; isImage: boolean };
+
+export type PlanResponse = { plan: Plan; members: Member[]; attachmentContext?: string };
 
 export type ApplyResponse = { columnsCreated: number; cardsCreated: number; planId: string };
 

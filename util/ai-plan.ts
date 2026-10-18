@@ -136,6 +136,7 @@ RULES:
 12. Each task becomes a card whose label colour shows its priority. "priorityColors" maps high, medium and low to a "#RRGGBB" hex colour. Default to ${JSON.stringify(
     DEFAULT_PRIORITY_COLORS
   )}. Only change them when the PM asks (e.g. "make high priority purple"); convert colour names to hex, keep the three colours distinct, and keep the PM's colours in later revisions.
+13. The PM may attach documents (their text appears between <<<FILE name>>> and <<<END FILE name>>> markers) or images such as wireframes, UI mockups, screenshots, architecture diagrams or whiteboard photos. Treat attachments as the primary source of requirements: read them fully, create tasks that cover every feature, screen, integration and requirement they contain, and mention the source file or screen in each task's description. If an attachment is unrelated to software work, say so in "questions" and plan from whatever is usable.
 
 OUTPUT: respond with a single json object only, no markdown, matching exactly this shape:
 ${JSON.stringify(EXAMPLE, null, 2)}`;

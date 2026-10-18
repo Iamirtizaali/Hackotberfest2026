@@ -15,32 +15,69 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerOverlay,
+  IconButton,
   ListItem,
   Select,
   Spinner,
+  Tag,
+  TagCloseButton,
+  TagLabel,
+  TagLeftIcon,
   Text,
   Textarea,
+  Tooltip,
   UnorderedList,
   useDisclosure
 } from '@chakra-ui/react';
+import { FiFileText, FiImage, FiPaperclip } from 'react-icons/fi';
 import { useDispatch } from 'react-redux';
 import { useAppSelector } from '@/src/hooks';
 import { fetchBoards } from '@/src/slices/boards';
 import checkEnvironment from '@/util/check-environment';
 import PlanPreview from '@/src/components/ai-planner/plan-preview';
-import { ChatMessage, Member, Plan, PlanResponse } from '@/src/types/ai';
+import {
+  ACCEPT,
+  MAX_FILES,
+  fitsRequestLimit,
+  readAttachment
+} from '@/src/components/ai-planner/read-attachment';
+import { ChatMessage, Member, Plan, PlanResponse, UploadAttachment } from '@/src/types/ai';
 
 type Props = {
   buttonProps?: ButtonProps | Record<string, unknown>;
 };
 
-// Assistant turns also carry the plan's open questions and risks for display
-type ThreadMessage = ChatMessage & { questions?: string[]; risks?: string[] };
+// Assistant turns also carry the plan's open questions and risks for display.
+// User turns can carry uploaded files (kept for Regenerate) and the document text the
+// server extracted from them (sent with later turns so refinements still see it).
+type ThreadMessage = ChatMessage & {
+  questions?: string[];
+  risks?: string[];
+  uploads?: UploadAttachment[];
+  context?: string;
+};
 
 const defaultButtonProps = { size: 'sm', colorScheme: 'brand' };
 
+const FILE_ONLY_PROMPT = 'Generate tickets from the attached file(s).';
+
 const toApiMessages = (thread: ThreadMessage[]): ChatMessage[] =>
   thread.map(({ role, content }) => ({ role, content }));
+
+// The latest message's files are uploaded again, so only earlier turns carry their extracted text
+const toPlanMessages = (thread: ThreadMessage[]): ChatMessage[] =>
+  thread.map(({ role, content, context }, i) => ({
+    role,
+    content: context && i < thread.length - 1 ? `${content}\n\n${context}` : content
+  }));
+
+const FileChip = ({ file, onRemove }: { file: UploadAttachment; onRemove?: () => void }) => (
+  <Tag size="sm" variant="subtle" colorScheme={file.isImage ? 'purple' : 'gray'} maxW="100%">
+    <TagLeftIcon as={file.isImage ? FiImage : FiFileText} />
+    <TagLabel isTruncated>{file.name}</TagLabel>
+    {onRemove && <TagCloseButton aria-label={`Remove ${file.name}`} onClick={onRemove} />}
+  </Tag>
+);
 
 const SmallList = ({ title, items }: { title: string; items?: string[] }) => {
   if (!items || items.length === 0) return null;
@@ -65,6 +102,7 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
   const dispatch = useDispatch();
   const btnRef = useRef();
   const endRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentBoard = useAppSelector((state) => state.board.board);
   const boards = useAppSelector((state) => state.boards.boards);
@@ -78,6 +116,9 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
   const [error, setError] = useState('');
   const [draft, setDraft] = useState('');
   const [selectedBoardId, setSelectedBoardId] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<UploadAttachment[]>([]);
+  const [isReadingFiles, setIsReadingFiles] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const targetBoardId = isLocked ? currentBoard._id : selectedBoardId;
 
@@ -97,6 +138,8 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
   }, [messages, loading, plan]);
 
   const requestPlan = async (thread: ThreadMessage[]) => {
+    const latest = thread[thread.length - 1];
+
     setMessages(thread);
     setLoading(true);
     setError('');
@@ -108,21 +151,37 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           boardId: targetBoardId,
-          messages: toApiMessages(thread),
-          previousPlan: plan || undefined
+          messages: toPlanMessages(thread),
+          previousPlan: plan || undefined,
+          attachments: (latest?.uploads || []).map(({ name, type, data }) => ({
+            name,
+            type,
+            data
+          }))
         })
       });
       const json = await response.json().catch(() => ({}));
 
       if (!response.ok || !json.plan) {
-        throw new Error(json.error || `Planning failed (${response.status})`);
+        throw new Error(
+          json.error ||
+            (response.status === 413
+              ? 'The attached files are too large. Try smaller files.'
+              : `Planning failed (${response.status})`)
+        );
       }
 
       const data = json as PlanResponse;
+      const threadWithContext = data.attachmentContext
+        ? thread.map((m, i) =>
+            i === thread.length - 1 ? { ...m, context: data.attachmentContext } : m
+          )
+        : thread;
+
       setPlan(data.plan);
       setMembers(data.members || []);
       setMessages([
-        ...thread,
+        ...threadWithContext,
         {
           role: 'assistant',
           content: data.plan.summary,
@@ -137,12 +196,66 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
     }
   };
 
+  const addFiles = async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList || []);
+
+    if (!files.length) return;
+    setError('');
+
+    if (pendingFiles.length + files.length > MAX_FILES) {
+      setError(`Attach up to ${MAX_FILES} files at a time.`);
+      return;
+    }
+
+    setIsReadingFiles(true);
+
+    try {
+      const read = await Promise.all(files.map(readAttachment));
+      const next = [...pendingFiles, ...read];
+
+      if (!fitsRequestLimit(next)) {
+        setError('These files are too large together (about 3 MB max). Remove one and try again.');
+        return;
+      }
+
+      setPendingFiles(next);
+    } catch (e) {
+      setError(e.message || 'Could not read that file.');
+    } finally {
+      setIsReadingFiles(false);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    addFiles(e.target.files);
+    // Allow picking the same file again after removing it
+    e.target.value = '';
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!loading) addFiles(e.dataTransfer.files);
+  };
+
   const handleSend = () => {
-    const content = draft.trim();
-    if (!content || loading || !targetBoardId) return;
+    const typed = draft.trim();
+    if ((!typed && pendingFiles.length === 0) || loading || isReadingFiles || !targetBoardId) {
+      return;
+    }
+
+    const uploads = pendingFiles;
 
     setDraft('');
-    requestPlan([...messages, { role: 'user', content }]);
+    setPendingFiles([]);
+    requestPlan([
+      ...messages,
+      {
+        role: 'user',
+        content: typed || FILE_ONLY_PROMPT,
+        uploads: uploads.length ? uploads : undefined
+      }
+    ]);
   };
 
   const handleRegenerate = () => {
@@ -159,6 +272,7 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
     setPlan(null);
     setMembers([]);
     setMessages([]);
+    setPendingFiles([]);
     setError('');
   };
 
@@ -217,11 +331,26 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
             )}
           </DrawerHeader>
 
-          <DrawerBody py="16px" bg="plaster">
+          <DrawerBody
+            py="16px"
+            bg={isDragging ? 'brand.50' : 'plaster'}
+            outline={isDragging ? '2px dashed' : 'none'}
+            outlineColor="brand.400"
+            outlineOffset="-8px"
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!isDragging) setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}>
             {messages.length === 0 && !loading && (
               <Box fontSize="14px" color="muted" textAlign="center" mt="32px" px="16px">
                 Describe your project — goals, scope, deadline — and DeepSeek will draft columns and
                 task cards, assigning them to board members by skill. Keep chatting to refine it.
+                <Text mt="10px" fontSize="13px">
+                  You can also attach or drop a spec (PDF, Word, PowerPoint, Excel, text) or an
+                  image such as a wireframe or whiteboard photo.
+                </Text>
               </Box>
             )}
 
@@ -244,6 +373,13 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
                     fontSize="14px"
                     whiteSpace="pre-wrap">
                     {m.content}
+                    {m.uploads && (
+                      <Box display="flex" flexWrap="wrap" sx={{ gap: '4px' }} mt="6px">
+                        {m.uploads.map((f) => (
+                          <FileChip key={f.name} file={f} />
+                        ))}
+                      </Box>
+                    )}
                     {!isUser && (
                       <>
                         <SmallList title="Open questions" items={m.questions} />
@@ -318,6 +454,27 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
             borderColor="line"
             flexDirection="column"
             alignItems="stretch">
+            {pendingFiles.length > 0 && (
+              <Box display="flex" flexWrap="wrap" sx={{ gap: '6px' }} mb="8px">
+                {pendingFiles.map((f, i) => (
+                  <FileChip
+                    key={`${f.name}-${i}`}
+                    file={f}
+                    onRemove={() => setPendingFiles(pendingFiles.filter((_, j) => j !== i))}
+                  />
+                ))}
+              </Box>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPT}
+              onChange={handleFileInput}
+              style={{ display: 'none' }}
+              aria-hidden="true"
+              data-testid="ai-planner-file-input"
+            />
             <Textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -333,15 +490,30 @@ const AiPlanner = ({ buttonProps = defaultButtonProps }: Props): JSX.Element => 
               isDisabled={loading}
             />
             <Box display="flex" alignItems="center" justifyContent="space-between" mt="8px">
-              <Text fontSize="12px" color="muted">
-                Ctrl/⌘ + Enter to send
-              </Text>
+              <Box display="flex" alignItems="center" sx={{ gap: '8px' }}>
+                <Tooltip label="Attach a file or image (up to 3)">
+                  <IconButton
+                    aria-label="Attach a file or image"
+                    icon={<FiPaperclip />}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => fileInputRef.current?.click()}
+                    isLoading={isReadingFiles}
+                    isDisabled={loading || pendingFiles.length >= MAX_FILES}
+                  />
+                </Tooltip>
+                <Text fontSize="12px" color="muted">
+                  Ctrl/⌘ + Enter to send
+                </Text>
+              </Box>
               <Button
                 colorScheme="brand"
                 size="sm"
                 onClick={handleSend}
                 isLoading={loading}
-                isDisabled={!draft.trim() || !targetBoardId}>
+                isDisabled={
+                  (!draft.trim() && pendingFiles.length === 0) || isReadingFiles || !targetBoardId
+                }>
                 Send
               </Button>
             </Box>
