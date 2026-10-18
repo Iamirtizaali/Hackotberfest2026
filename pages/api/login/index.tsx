@@ -5,6 +5,7 @@ import { compare } from 'bcrypt';
 import { serialize } from 'cookie';
 
 import { sign } from 'jsonwebtoken';
+import { ensureDemoAccounts, isDemoEmail } from '@/util/demo-accounts';
 
 const KEY = process.env.JWT_SECRET_KEY;
 
@@ -28,6 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { db, client } = await connectToDatabase();
 
     if (client.isConnected()) {
+      // Make sure the hardcoded demo accounts exist in this database before checking them
+      if (isDemoEmail(email)) await ensureDemoAccounts(db);
+
       const userDetail = await isUserExists(db, email);
 
       if (userDetail) {
