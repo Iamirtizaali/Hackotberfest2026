@@ -24,7 +24,7 @@ const Login = () => {
   });
 
   const [isFetching, setIsFetching] = useState(false);
-  const [hasError, setErrorState] = useState(false);
+  const [hasError, setErrorState] = useState<false | 'credentials' | 'server'>(false);
 
   const host = checkEnvironment();
   const router = useRouter();
@@ -40,21 +40,36 @@ const Login = () => {
 
     const url = `${host}/api/login`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      mode: 'cors',
-      cache: 'no-cache',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      redirect: 'follow',
-      referrerPolicy: 'no-referrer',
-      body: JSON.stringify(data)
-    });
+    let response: Response;
+    let result;
 
-    const result = await response.json();
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        redirect: 'follow',
+        referrerPolicy: 'no-referrer',
+        body: JSON.stringify(data)
+      });
+
+      // A crashed server responds with an HTML error page, so don't assume JSON
+      result = await response.json().catch(() => ({}));
+    } catch (err) {
+      result = {};
+    }
+
     setIsFetching(false);
+
+    if (!response || response.status >= 500) {
+      setErrorState('server');
+
+      return;
+    }
 
     const { email: inviteEmail, token, boardId } = router.query;
     const isInvitedUser = inviteEmail && token && boardId;
@@ -70,7 +85,7 @@ const Login = () => {
     }
 
     if (response.status === 404) {
-      setErrorState(true);
+      setErrorState('credentials');
     }
   };
 
@@ -88,7 +103,9 @@ const Login = () => {
     return (
       <Alert status="error" borderRadius="tile" mb="20px" pr="40px" fontSize="sm">
         <AlertDescription>
-          That email and password don&apos;t match an account. Check them and try again.
+          {hasError === 'server'
+            ? 'We couldn’t sign you in because of a server problem. Please try again shortly.'
+            : 'That email and password don’t match an account. Check them and try again.'}
         </AlertDescription>
         <CloseButton
           size="sm"
