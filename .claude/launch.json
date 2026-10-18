@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "trello-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set NODE_OPTIONS=--openssl-legacy-provider&& yarn dev"],
+      "port": 3000
+    }
+  ]
+}

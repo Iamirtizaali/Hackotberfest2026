@@ -1,0 +1,98 @@
+html,
+body {
+  margin: 0px;
+  height: 100%;
+}
+
+body {
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+:focus-visible {
+  outline: 2px solid #2b44c7;
+  outline-offset: 2px;
+}
+
+/* Page-load progress bar */
+#nprogress .bar {
+  background: #2b44c7;
+}
+
+/* Board scroll areas: thin, quiet scrollbars */
+.tessera-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(30, 41, 37, 0.25) transparent;
+}
+
+.tessera-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tessera-scroll::-webkit-scrollbar-thumb {
+  background: rgba(30, 41, 37, 0.25);
+  border-radius: 8px;
+}
+
+.tessera-scroll--light {
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.tessera-scroll--light::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* Rich text editor in the card details */
+.text-editor .ql-toolbar.ql-snow {
+  border: 1px solid #e3e5e0;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #f2f3ef;
+  font-family: inherit;
+}
+
+.text-editor .ql-container.ql-snow {
+  border: 1px solid #e3e5e0;
+  border-radius: 0 0 6px 6px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1e2925;
+}
+
+.text-editor .ql-editor {
+  min-height: 160px;
+  line-height: 1.6;
+}
+
+.text-editor .ql-editor.ql-blank::before {
+  color: #66706b;
+  font-style: normal;
+}
+
+.text-editor .ql-snow .ql-stroke {
+  stroke: #66706b;
+}
+
+.text-editor .ql-snow .ql-fill {
+  fill: #66706b;
+}
+
+.text-editor .ql-snow button:hover .ql-stroke,
+.text-editor .ql-snow .ql-active .ql-stroke {
+  stroke: #2b44c7;
+}
+
+.text-editor .ql-snow button:hover .ql-fill,
+.text-editor .ql-snow .ql-active .ql-fill {
+  fill: #2b44c7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

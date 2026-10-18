@@ -1,0 +1,160 @@
+import React from 'react';
+import {
+  Box,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  Text,
+  Alert,
+  AlertDescription,
+  CloseButton
+} from '@chakra-ui/react';
+import NextLink from 'next/link';
+import { useState } from 'react';
+import checkEnvironment from '@/util/check-environment';
+import { useRouter } from 'next/router';
+import inviteUser from '@/util/invite-user';
+import AuthLayout from '@/src/components/auth-layout';
+
+const Login = () => {
+  const [values, setValues] = useState({
+    email: '',
+    password: ''
+  });
+
+  const [isFetching, setIsFetching] = useState(false);
+  const [hasError, setErrorState] = useState(false);
+
+  const host = checkEnvironment();
+  const router = useRouter();
+
+  const loginUser = async (e) => {
+    e.preventDefault();
+    setIsFetching(true);
+
+    const data = {
+      email: values.email,
+      password: values.password
+    };
+
+    const url = `${host}/api/login`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      redirect: 'follow',
+      referrerPolicy: 'no-referrer',
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    setIsFetching(false);
+
+    const { email: inviteEmail, token, boardId } = router.query;
+    const isInvitedUser = inviteEmail && token && boardId;
+
+    if (isInvitedUser && result.message === 'success') {
+      const hasInvited = await inviteUser({ email: inviteEmail, boardId });
+
+      if (hasInvited) {
+        window.location.href = `${window.location.origin}/home`;
+      }
+    } else if (result.message === 'success') {
+      window.location.href = `${window.location.origin}/home`;
+    }
+
+    if (response.status === 404) {
+      setErrorState(true);
+    }
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setValues({
+      ...values,
+      [name]: value
+    });
+  };
+
+  const showLoginError = () => {
+    if (!hasError) return;
+
+    return (
+      <Alert status="error" borderRadius="tile" mb="20px" pr="40px" fontSize="sm">
+        <AlertDescription>
+          That email and password don&apos;t match an account. Check them and try again.
+        </AlertDescription>
+        <CloseButton
+          size="sm"
+          position="absolute"
+          right="8px"
+          top="8px"
+          aria-label="Dismiss"
+          onClick={() => setErrorState(false)}
+        />
+      </Alert>
+    );
+  };
+
+  return (
+    <AuthLayout
+      title="Log in to Tessera"
+      description="Welcome back. Enter your email and password.">
+      {showLoginError()}
+      <form onSubmit={loginUser}>
+        <FormControl id="email">
+          <FormLabel>Email</FormLabel>
+          <Input
+            type="email"
+            name="email"
+            size="lg"
+            fontSize="md"
+            value={values.email}
+            placeholder="you@company.com"
+            onChange={handleChange}
+            autoComplete="email"
+          />
+        </FormControl>
+        <FormControl id="password" mt="20px">
+          <FormLabel>Password</FormLabel>
+          <Input
+            type="password"
+            name="password"
+            size="lg"
+            fontSize="md"
+            value={values.password}
+            autoComplete="current-password"
+            onChange={handleChange}
+          />
+        </FormControl>
+        <Button
+          type="submit"
+          width="full"
+          mt="28px"
+          size="lg"
+          fontSize="md"
+          colorScheme="brand"
+          isLoading={isFetching}
+          loadingText="Logging in">
+          Log in
+        </Button>
+      </form>
+      <Text mt="24px" fontSize="sm" color="muted">
+        New to Tessera?{' '}
+        <NextLink href="/signup" passHref>
+          <Text as="a" color="lapis" fontWeight={500} _hover={{ textDecoration: 'underline' }}>
+            Create an account
+          </Text>
+        </NextLink>
+      </Text>
+    </AuthLayout>
+  );
+};
+
+export default Login;
